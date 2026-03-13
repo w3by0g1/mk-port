@@ -4,7 +4,7 @@ import p5 from "p5";
 const FRICTION = 0.95;
 const SCROLL_SENSITIVITY = 0.0005;
 const RADIUS_LERP = 0.08;
-const INITIAL_VELOCITY = 0.6;
+const INITIAL_VELOCITY = 0.667;
 const FADE_IN_SPEED = 0.01;
 const SNAP_THRESHOLD = 0.01;
 const SNAP_LERP = 0.1;
