@@ -439,6 +439,7 @@ function App() {
           </span>
         </div>
         <div
+          onClick={() => window.location.href = "mailto:w3by0g1@proton.me"}
           style={{
             paddingTop: "0px",
             paddingLeft: "7px",
@@ -447,6 +448,7 @@ function App() {
             backgroundColor: "#EFEFEF",
             color: "#A8ADAB",
             border: "1px solid #DADBDA",
+            cursor: "pointer",
           }}
         >
           <span style={{ fontFamily: "NeueBit" }}>contact</span>
