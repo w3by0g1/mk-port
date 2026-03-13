@@ -277,6 +277,49 @@ export default function RingSketch({
         return false; // prevent page scroll
       };
 
+      // Touch swipe support using native listeners for reliability on mobile
+      let touchPrevY = null;
+      let touchLastVelocity = 0;
+
+      const canvas = containerRef.current;
+
+      const onTouchStart = (e) => {
+        if (e.touches.length === 1) {
+          touchPrevY = e.touches[0].clientY;
+          touchLastVelocity = 0;
+          velocity = 0;
+        }
+      };
+
+      const onTouchMove = (e) => {
+        if (e.touches.length === 1 && touchPrevY !== null) {
+          e.preventDefault();
+          const currentY = e.touches[0].clientY;
+          const dy = currentY - touchPrevY;
+          touchLastVelocity = dy * 0.005;
+          offset -= touchLastVelocity;
+          touchPrevY = currentY;
+        }
+      };
+
+      const onTouchEnd = () => {
+        if (touchPrevY !== null) {
+          velocity = -touchLastVelocity;
+        }
+        touchPrevY = null;
+        touchLastVelocity = 0;
+      };
+
+      canvas.addEventListener("touchstart", onTouchStart, { passive: true });
+      canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+      canvas.addEventListener("touchend", onTouchEnd);
+
+      p._touchCleanup = () => {
+        canvas.removeEventListener("touchstart", onTouchStart);
+        canvas.removeEventListener("touchmove", onTouchMove);
+        canvas.removeEventListener("touchend", onTouchEnd);
+      };
+
       p.windowResized = () => {
         p.resizeCanvas(p.windowWidth, p.windowHeight);
         const size = Math.min(p.windowWidth, p.windowHeight);
@@ -291,6 +334,7 @@ export default function RingSketch({
     p5Ref.current = new p5(sketch, containerRef.current);
 
     return () => {
+      if (p5Ref.current._touchCleanup) p5Ref.current._touchCleanup();
       p5Ref.current.remove();
     };
   }, [projects]);
