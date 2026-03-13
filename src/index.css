@@ -1,0 +1,61 @@
+@font-face {
+  font-family: "NeueBit";
+  src: url("./assets/NeueBit-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "PPNeueBit";
+  src: url("./assets/PPNeueBit-Bold.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: NeueHaasDisplayLight;
+  src: url("./assets/NeueHaasDisplayLight.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: NeueHaasDisplayMed;
+  src: url("./assets/NHaasGroteskTXPro-65Md.otf") format("truetype");
+}
+
+@font-face {
+  font-family: Fraktion;
+  src: url("./assets/PPFraktionMono-Regular-BF675904a6a1564.otf") format("truetype");
+}
+
+@font-face {
+  font-family: FraktionBold;
+  src: url("./assets/PPFraktionSans-Bold-BF675904a667d89.otf") format("truetype");
+}
+
+@property --bg-edge {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: #dbdbdb;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  overflow: hidden;
+  height: 100dvh;
+}
+
+body {
+  background-color: var(--bg-edge);
+  background-image: radial-gradient(circle, #ffffff 0%, var(--bg-edge) 100%);
+  transition: --bg-edge 0.4s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100dvh;
+  font-family: system-ui, sans-serif;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "mkportfolio-studio",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy"
+  },
+  "dependencies": {
+    "@sanity/vision": "^3",
+    "react": "^19",
+    "react-dom": "^19",
+    "sanity": "^3",
+    "styled-components": "^6"
+  },
+  "devDependencies": {
+    "@sanity/eslint-config-studio": "^4"
+  }
+}

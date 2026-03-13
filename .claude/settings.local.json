@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm install:*)",
+      "Bash(ls -lh /Users/palmreader/Development/mk-port/src/assets/*.png /Users/palmreader/Development/mk-port/src/assets/*.jpg)",
+      "Bash(ls -lh /Users/palmreader/Development/mk-port/src/assets/*.png)",
+      "Bash(npm create:*)",
+      "Bash(npx sanity:*)",
+      "Bash(gh auth:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/palmreader/Development/mk-port/studio"
+    ]
+  }
+}
