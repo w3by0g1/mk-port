@@ -26,6 +26,7 @@ function App() {
   const [weatherInfo, setWeatherInfo] = useState(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [imageFocused, setImageFocused] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     const blobCache = {};
@@ -132,6 +133,11 @@ function App() {
         // silently fail
       }
     });
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(id);
   }, []);
 
   const handleHover = useCallback((project) => {
@@ -325,7 +331,7 @@ function App() {
           <div style={{ width: "100px" }}>
             {weatherInfo.timezone}
             {"+"}
-            {new Date().toLocaleTimeString([], {
+            {currentTime.toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
               second: "2-digit",
