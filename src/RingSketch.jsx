@@ -172,14 +172,15 @@ export default function RingSketch({
           p.rotate(rotation);
           p.drawingContext.globalAlpha = itemOpacity * fadeIn;
 
+          const isMobile = "ontouchstart" in window;
           const targetScale = i === hoverIndex ? 1.05 : 1;
           itemScales[i] += (targetScale - itemScales[i]) * 0.15;
           p.scale(itemScales[i]);
 
-          const targetGray = i === hoverIndex ? 0 : 1;
+          const targetGray = isMobile || i === hoverIndex ? 0 : 1;
           itemSaturations[i] += (targetGray - itemSaturations[i]) * 0.1;
 
-          const targetOpac = i === hoverIndex ? 1 : 0.4;
+          const targetOpac = isMobile || i === hoverIndex ? 1 : 0.4;
           itemOpacities[i] += (targetOpac - itemOpacities[i]) * 0.15;
 
           const name = projects[i].name;
