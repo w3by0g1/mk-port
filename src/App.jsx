@@ -226,7 +226,7 @@ function App() {
     let rafId;
     const LERP = 0.05;
     const RING_LERP = 0.12;
-    const TILT_AMOUNT = 10;
+    const TILT_AMOUNT = 15;
 
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
@@ -439,7 +439,7 @@ function App() {
           </span>
         </div>
         <div
-          onClick={() => window.location.href = "mailto:w3by0g1@proton.me"}
+          onClick={() => (window.location.href = "mailto:w3by0g1@proton.me")}
           style={{
             paddingTop: "0px",
             paddingLeft: "7px",

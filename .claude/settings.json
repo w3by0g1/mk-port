@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh run:*)",
+      "Bash(npm run:*)",
+      "WebFetch(domain:mk-port-one.vercel.app)",
+      "Bash(git push:*)"
+    ]
+  }
+}
