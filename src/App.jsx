@@ -27,6 +27,13 @@ function App() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [imageFocused, setImageFocused] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showTypewriter, setShowTypewriter] = useState(false);
+  const [typewriterName, setTypewriterName] = useState("");
+  const [typewriterPhrase, setTypewriterPhrase] = useState("");
+  const [typingDone, setTypingDone] = useState(false);
+  const [typewriterFading, setTypewriterFading] = useState(false);
+  const [pinkHovered, setPinkHovered] = useState(false);
+  const typewriterTimeoutRef = useRef(null);
 
   useEffect(() => {
     const blobCache = {};
@@ -385,18 +392,57 @@ function App() {
       >
         <div
           style={{
+            position: "relative",
             paddingTop: "5px",
             paddingLeft: "7px",
             width: "115px",
             height: "55px",
-            backgroundColor: "#ff005a",
+            backgroundColor: pinkHovered ? "#cc0048" : "#ff005a",
             color: "#A8ADAB",
             border: "1px solid #DADBDA",
-            transition: "background-color 0.4s ease",
+            transition: "background-color 0.2s ease",
             cursor: "pointer",
           }}
+          onMouseEnter={() => setPinkHovered(true)}
+          onMouseLeave={() => setPinkHovered(false)}
           onClick={() => {
             setSelectedProject(null);
+            if (typewriterTimeoutRef.current)
+              clearTimeout(typewriterTimeoutRef.current);
+            setTypewriterFading(false);
+            setShowTypewriter(true);
+            setTypewriterName("");
+            setTypewriterPhrase("");
+            setTypingDone(false);
+            const name = "+ ELISHA OLUNAIKE ";
+            const phrases = [
+              "can't stop dancing",
+              "won't sit still",
+              "WILL sue you",
+            ];
+            const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+            const fullText = name + phrase;
+            let i = 0;
+            const interval = setInterval(() => {
+              i++;
+              if (i <= name.length) {
+                setTypewriterName(fullText.slice(0, i));
+              } else {
+                setTypewriterName(name);
+                setTypewriterPhrase(fullText.slice(name.length, i));
+              }
+              if (i >= fullText.length) {
+                clearInterval(interval);
+                setTypingDone(true);
+                typewriterTimeoutRef.current = setTimeout(() => {
+                  setTypewriterFading(true);
+                  setTimeout(() => {
+                    setShowTypewriter(false);
+                    setTypewriterFading(false);
+                  }, 600);
+                }, 10000);
+              }
+            }, 50);
           }}
         >
           <img
@@ -404,6 +450,61 @@ function App() {
             style={{ width: "19px", filter: "brightness(0) invert(1)" }}
             alt=""
           />
+          {showTypewriter && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "absolute",
+                left: "125px",
+                top: "3px",
+                width: "115px",
+                fontFamily: "Fraktion",
+                fontSize: "12px",
+                color: "#383838",
+                lineHeight: "1.2",
+                letterSpacing: "-0.7px",
+                overflow: "hidden",
+                boxSizing: "border-box",
+                opacity: typewriterFading ? 0 : 1,
+                transition: "opacity 0.6s ease",
+              }}
+            >
+              <div>
+                <span style={{ fontFamily: "FraktionBold" }}>
+                  {typewriterName}
+                </span>
+                {typewriterPhrase}
+              </div>
+              <a
+                href="https://instagram.com/cattleherder"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "#ff005a",
+                  textDecoration: "underline",
+                  opacity: typingDone ? 1 : 0,
+                  transition: "opacity 0.6s ease",
+                }}
+              >
+                @cattleherder
+              </a>
+            </div>
+          )}
+        </div>
+        <div
+          onClick={() => (window.location.href = "mailto:w3by0g1@proton.me")}
+          style={{
+            paddingTop: "0px",
+            paddingLeft: "7px",
+            width: "115px",
+            height: "55px",
+            backgroundColor: "#EFEFEF",
+            color: "#A8ADAB",
+            border: "1px solid #DADBDA",
+            cursor: "pointer",
+          }}
+        >
+          <span style={{ fontFamily: "NeueBit" }}>contact</span>
         </div>
         <div
           style={{
@@ -437,21 +538,6 @@ function App() {
               {`Q${Math.ceil((new Date().getMonth() + 1) / 3)} ${new Date().getFullYear()}`}
             </span>
           </span>
-        </div>
-        <div
-          onClick={() => (window.location.href = "mailto:w3by0g1@proton.me")}
-          style={{
-            paddingTop: "0px",
-            paddingLeft: "7px",
-            width: "115px",
-            height: "55px",
-            backgroundColor: "#EFEFEF",
-            color: "#A8ADAB",
-            border: "1px solid #DADBDA",
-            cursor: "pointer",
-          }}
-        >
-          <span style={{ fontFamily: "NeueBit" }}>contact</span>
         </div>
       </div>
 
@@ -724,7 +810,16 @@ function App() {
                     textDecoration: "none",
                     pointerEvents: "auto",
                     cursor: "pointer",
+                    transition: "background-color 0.2s ease",
                   }}
+                  onMouseEnter={(e) => (
+                    (e.currentTarget.style.backgroundColor = "#929292"),
+                    (e.currentTarget.style.color = "#ffffff")
+                  )}
+                  onMouseLeave={(e) => (
+                    (e.currentTarget.style.backgroundColor = "#ffffff"),
+                    (e.currentTarget.style.color = "#545454")
+                  )}
                 >
                   {selectedProject.name} ↗
                 </a>

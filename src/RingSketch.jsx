@@ -278,37 +278,46 @@ export default function RingSketch({
         return false; // prevent page scroll
       };
 
-      // Touch swipe support using native listeners for reliability on mobile
-      let touchPrevY = null;
-      let touchLastVelocity = 0;
+      // Touch swipe support — spin like a wheel based on angular movement
+      let touchPrevAngle = null;
+      let touchLastAngularVel = 0;
 
       const canvas = containerRef.current;
 
+      const getTouchAngle = (touch) => {
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+        return Math.atan2(touch.clientY - cy, touch.clientX - cx);
+      };
+
       const onTouchStart = (e) => {
         if (e.touches.length === 1) {
-          touchPrevY = e.touches[0].clientY;
-          touchLastVelocity = 0;
+          touchPrevAngle = getTouchAngle(e.touches[0]);
+          touchLastAngularVel = 0;
           velocity = 0;
         }
       };
 
       const onTouchMove = (e) => {
-        if (e.touches.length === 1 && touchPrevY !== null) {
+        if (e.touches.length === 1 && touchPrevAngle !== null) {
           e.preventDefault();
-          const currentY = e.touches[0].clientY;
-          const dy = currentY - touchPrevY;
-          touchLastVelocity = dy * 0.005;
-          offset -= touchLastVelocity;
-          touchPrevY = currentY;
+          const currentAngle = getTouchAngle(e.touches[0]);
+          let delta = currentAngle - touchPrevAngle;
+          // Normalize to [-PI, PI] to handle wrapping
+          if (delta > Math.PI) delta -= Math.PI * 2;
+          if (delta < -Math.PI) delta += Math.PI * 2;
+          touchLastAngularVel = delta;
+          offset += delta;
+          touchPrevAngle = currentAngle;
         }
       };
 
       const onTouchEnd = () => {
-        if (touchPrevY !== null) {
-          velocity = -touchLastVelocity;
+        if (touchPrevAngle !== null) {
+          velocity = -touchLastAngularVel;
         }
-        touchPrevY = null;
-        touchLastVelocity = 0;
+        touchPrevAngle = null;
+        touchLastAngularVel = 0;
       };
 
       canvas.addEventListener("touchstart", onTouchStart, { passive: true });
