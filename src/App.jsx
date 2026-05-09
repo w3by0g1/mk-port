@@ -781,7 +781,7 @@ function App() {
           )}
         </div>
       </div>
-      {hoveredProject && !selectedProject && (
+      {hoveredProject && !selectedProject && !isMobile && (
         <div
           key={hoveredProject.displayName}
           className="center-label"
