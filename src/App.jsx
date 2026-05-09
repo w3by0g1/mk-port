@@ -649,7 +649,7 @@ function App() {
                   );
                 }}
                 style={{
-                  fontFamily: "NeueBit",
+                  fontFamily: "Fraktion",
                   color: "#8e8e8e",
                   position: "absolute",
                   left: isMobile ? "5px" : "30px",
@@ -675,7 +675,7 @@ function App() {
                   );
                 }}
                 style={{
-                  fontFamily: "NeueBit",
+                  fontFamily: "Fraktion",
                   color: "#8e8e8e",
 
                   position: "absolute",
