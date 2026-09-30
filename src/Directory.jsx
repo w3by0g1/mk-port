@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchDirectory } from "./directory.js";
 import { float } from "./float.js";
-import { openTile, closeTile } from "./open.js";
+import { openTile, closeTile, PHONE } from "./open.js";
 import Carousel from "./Carousel.jsx";
 import bioIcon from "./assets/icons/bio.svg?raw";
 import linksIcon from "./assets/icons/links.svg?raw";
@@ -335,10 +335,6 @@ const SITE_TITLE = document.title;
 // A press that moves further than this, in pixels, was a drag of the tile
 // rather than a press of it.
 const PRESS_SLOP = 5;
-// Where the page is a single column, as the stylesheet has it. There the
-// bar is the page's full width, so an open project's work goes under the
-// bar and the description rather than beside them.
-const PHONE = "(max-width: 800px)";
 // How far the page is scrolled past an open project's description, in
 // pixels, before it fades.
 const PAST = 8;
@@ -601,6 +597,13 @@ function Directory() {
   const footAt = 1 + projects.length;
   const down = (turn, at) => ({ ...turn, down: at });
 
+  // The open project's link goes at the foot of its description on a phone,
+  // where its tile has drawn down to a bar without it; on a wider screen
+  // the tile keeps it, and the description goes without.
+  const saysLink = Boolean(
+    opened?.link?.label && window.matchMedia(PHONE).matches,
+  );
+
   return (
     <div
       ref={root}
@@ -703,10 +706,10 @@ function Directory() {
 
         {/* In the grid, though placed by hand rather than by it, so it is
             sized and set as every other tile is. */}
-        {opened && showing && (opened.description || opened.link?.label) && (
+        {opened && showing && (opened.description || saysLink) && (
           <Description
             text={opened.description}
-            link={opened.link}
+            link={saysLink ? opened.link : null}
             bar={showing}
             onMeasure={setSaid}
           />

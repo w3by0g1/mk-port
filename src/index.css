@@ -383,8 +383,7 @@ html:has(.dir-landing) body {
   cursor: default;
 }
 
-.dir-open .dir-tile:not(.dir-chosen):not(.dir-description),
-.dir-open .dir-chosen .dir-fades {
+.dir-open .dir-tile:not(.dir-chosen):not(.dir-description) {
   pointer-events: none;
 }
 
@@ -801,6 +800,24 @@ html:has(.dir-landing) body {
   .dir-past,
   .dir-float {
     display: none;
+  }
+
+  /* What goes as an open project's tile draws down to its bar cannot be
+     pressed while it is gone. */
+  .dir-open .dir-chosen .dir-fades {
+    pointer-events: none;
+  }
+
+  /* An open project's bar is its name alone; its kind fades away as it
+     opens, and comes back as it closes. */
+  .dir-project .dir-kind {
+    transition:
+      color 1.2s ease-in-out,
+      opacity 0.3s ease;
+  }
+
+  .dir-open .dir-chosen .dir-kind {
+    opacity: 0;
   }
 
   /* A project's kind is cut at its first "+" or "/". */

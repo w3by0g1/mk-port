@@ -1,7 +1,9 @@
-// Opening a project on the directory: the chosen tile draws down to its
-// first line, its name and its kind, and moves to the top left of the page,
-// while the other tiles fade away round it; its work is then shown under
-// it. A tile that is not in the first column goes across to it first, and
+// Opening a project on the directory: the chosen tile moves to the top
+// left of the page, while the other tiles fade away round it; its work is
+// then shown beside it. On a phone, where the tile is the page's full
+// width, it draws down to its first line, its name and its kind, as it
+// goes, and its work is shown under it; on a wider screen it keeps its
+// size and all that is on it. A tile that is not in the first column goes across to it first, and
 // then up. Closing it, it comes back down as a bar to the foot of its
 // place and grows back up into it from there, as the other tiles come
 // back.
@@ -16,6 +18,10 @@
 // move up or down eases quick away and slow to settle; the move across
 // eases in and out, so it runs on into the move after it rather than
 // coming to a stop first.
+// Where the page is a single column, as the stylesheet has it, and an open
+// tile draws down to a bar.
+export const PHONE = "(max-width: 800px)";
+
 const FADE = 300;
 const MOVE = 550;
 const ACROSS = 400;
@@ -70,9 +76,9 @@ const goUp = async (tile, to, speed) => {
 
 // Every tile on the page but the chosen one, and the parts of the chosen
 // one that go when it draws down: everything below its first line.
-const aside = (root, tile) => [
+const aside = (root, tile, drawsDown) => [
   ...[...root.querySelectorAll(".dir-tile")].filter((t) => t !== tile),
-  ...tile.querySelectorAll(".dir-fades"),
+  ...(drawsDown ? tile.querySelectorAll(".dir-fades") : []),
 ];
 
 // A tile near the foot of a page that scrolls cannot be brought up to the
@@ -150,11 +156,13 @@ export async function openTile(
   const place = tile.getBoundingClientRect();
   const grid = getComputedStyle(root.querySelector(".dir-grid"));
   const style = getComputedStyle(tile);
-  const firstLine =
-    parseFloat(style.lineHeight) +
-    parseFloat(style.paddingTop) +
-    parseFloat(style.paddingBottom) +
-    parseFloat(style.borderTopWidth);
+  const drawsDown = window.matchMedia(PHONE).matches;
+  const firstLine = drawsDown
+    ? parseFloat(style.lineHeight) +
+      parseFloat(style.paddingTop) +
+      parseFloat(style.paddingBottom) +
+      parseFloat(style.borderTopWidth)
+    : place.height;
   // How far down the window it comes to rest: the grid's own top margin,
   // or, where the page asks for another, that. A phone's is further down,
   // clear of the point near the top of the window that Safari takes its
@@ -182,7 +190,7 @@ export async function openTile(
   // Drawn over the work that will come up under it, and away from its
   // place at once, as the others begin to fade.
   tile.style.zIndex = "5";
-  const faded = aside(root, tile).map((el) =>
+  const faded = aside(root, tile, drawsDown).map((el) =>
     el.animate([{ opacity: 1 }, { opacity: 0 }], {
       duration: FADE * speed,
       easing: "ease",
