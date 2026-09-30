@@ -2,14 +2,15 @@
 // and the profile, which is everything about the person rather than the
 // work. Both are edited in mk-port's studio.
 //
-// The projects come newest first, by their dates. Any without a date yet
-// come after all those with one, and the studio's sort order settles
-// between projects in the same month, or with no date at all.
+// The projects come newest first, by their dates, leaving out any hidden
+// in the studio. Any without a date yet come after all those with one, and
+// the studio's sort order settles between projects in the same month, or
+// with no date at all.
 
 import { query } from "./sanity.js";
 
 const QUERY = `{
-  "projects": *[_type == "project"]
+  "projects": *[_type == "project" && hidden != true]
     | order(defined(date) desc, date desc, order asc) {
     _id, name, "slug": slug.current, client, kind, description, services,
     link, status, striped,

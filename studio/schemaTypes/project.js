@@ -104,6 +104,14 @@ export default defineType({
       initialValue: false,
     }),
     defineField({
+      name: 'hidden',
+      title: 'Hidden',
+      type: 'boolean',
+      description:
+        'Leave it off the site altogether, tile, address and all, until this is turned off again.',
+      initialValue: false,
+    }),
+    defineField({
       name: 'showcaseMedia',
       title: 'Showcase Media',
       type: 'array',
@@ -133,6 +141,10 @@ export default defineType({
     },
   ],
   preview: {
-    select: {title: 'name', subtitle: 'kind'},
+    select: {title: 'name', kind: 'kind', hidden: 'hidden'},
+    prepare: ({title, kind, hidden}) => ({
+      title,
+      subtitle: hidden ? `Hidden${kind ? ` \u2014 ${kind}` : ''}` : kind,
+    }),
   },
 })
