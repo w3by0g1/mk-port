@@ -1,56 +1,46 @@
 /* Neue Haas Grotesk Display Pro, the site's type, in the three weights it
    uses: 55 Roman for the words, 65 Medium for the projects' names and the
    weightier words along the foot, and 75 Bold for the headings and the
-   weightier words in the cards. They are served from public/fonts, cut down
-   to woff2 from the .otf files beside them, and the copy installed on this
-   machine is used first where there is one. 55 Roman calls itself 450 but
-   is declared at 400 here, as that is what plain text asks for. */
+   weightier words in the cards; and Rigid Square, for the arrows after the
+   links. Each is cut down from its .otf to the letters the site can use
+   (the Latin alphabets, their accents, and punctuation; only the arrows,
+   for Rigid Square) and its everyday features, as woff2, and kept in
+   src/assets/fonts, so each is named after what is in it when the site is
+   built and can be kept by a browser for good. They are fetched from the
+   start, alongside the page (see index.html), and the words wait for them
+   rather than being set in another face first and shifting. 55 Roman calls
+   itself 450 but is declared at 400 here, as that is what plain text asks
+   for. */
 @font-face {
   font-family: "Neue Haas Grotesk Display Pro";
-  src:
-    local("Neue Haas Grotesk Display Pro 55 Roman"),
-    local("NHaasGroteskDSPro-55Rg"),
-    url("/fonts/NHaasGroteskDSPro-55Rg.woff2") format("woff2");
+  src: url("./assets/fonts/NHaasGroteskDSPro-55Rg.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 @font-face {
   font-family: "Neue Haas Grotesk Display Pro";
-  src:
-    local("Neue Haas Grotesk Display Pro 65 Medium"),
-    local("NHaasGroteskDSPro-65Md"),
-    url("/fonts/NHaasGroteskDSPro-65Md.woff2") format("woff2");
+  src: url("./assets/fonts/NHaasGroteskDSPro-65Md.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 @font-face {
   font-family: "Neue Haas Grotesk Display Pro";
-  src:
-    local("Neue Haas Grotesk Display Pro 75 Bold"),
-    local("NHaasGroteskDSPro-75Bd"),
-    url("/fonts/NHaasGroteskDSPro-75Bd.woff2") format("woff2");
+  src: url("./assets/fonts/NHaasGroteskDSPro-75Bd.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
-/* Rigid Square, for the arrows after the directory's links. It is served
-   from public/, and the copy installed on this machine is used first where
-   there is one. Only the arrows are drawn in it, so it is asked for only
-   when one is on the page. */
 @font-face {
   font-family: "Rigid Square";
-  src:
-    local("Rigid Square Regular"),
-    local("RigidSquare-Regular"),
-    url("/RigidSquare-Regular.otf") format("opentype");
+  src: url("./assets/fonts/RigidSquare-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
-  font-display: swap;
+  font-display: block;
 }
 
 /* The page's own ground is the directory's, so wherever a browser shows

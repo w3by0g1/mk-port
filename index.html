@@ -2,13 +2,60 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=overlays-content"
+    />
+    <!-- The page's name; an open project's name is put before it. -->
+    <title>Elisha Olunaike</title>
+    <meta
+      name="description"
+      content="Elisha Olunaike is a web and app designer and developer, interested in innovating tech experiences and creating unique interactions for the web."
+    />
+    <link rel="canonical" href="https://www.elishaolunaike.works/" />
+
+    <!-- How the page reads when it is shared. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Elisha Olunaike" />
+    <meta property="og:title" content="Elisha Olunaike" />
+    <meta
+      property="og:description"
+      content="Web and app designer and developer, creating unique interactions for the web."
+    />
+    <meta property="og:url" content="https://www.elishaolunaike.works/" />
+    <meta name="twitter:card" content="summary" />
+
+    <!-- The page is light only, on its own pale grey, which is also what a
+         browser's bars take after. Numbers are left as words, not dialled. -->
+    <meta name="color-scheme" content="light" />
     <meta name="theme-color" content="#f4f4f4" />
-    <title>new-port</title>
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- The icon: the bio disc, white in the middle. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Elisha Olunaike" />
+
+    <!-- Sanity, where the directory and the work are read from, is met
+         before it is needed. -->
+    <link rel="preconnect" href="https://sgenxzel.apicdn.sanity.io" crossorigin />
+    <link rel="preconnect" href="https://cdn.sanity.io" />
+
+    <!-- The fonts, fetched from the start rather than once the styles have
+         been read and the page drawn. -->
+    <link rel="preload" href="/src/assets/fonts/NHaasGroteskDSPro-55Rg.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/src/assets/fonts/NHaasGroteskDSPro-65Md.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/src/assets/fonts/NHaasGroteskDSPro-75Bd.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/src/assets/fonts/RigidSquare-Regular.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <p>
+        Elisha Olunaike: web and app designer and developer. This site needs
+        JavaScript to show its work.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
