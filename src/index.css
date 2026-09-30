@@ -46,7 +46,7 @@
 
 html, body {
   overflow: hidden;
-  height: 100dvh;
+  height: var(--app-height, 100svh);
 }
 
 body {
@@ -56,6 +56,6 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100dvh;
+  min-height: var(--app-height, 100svh);
   font-family: system-ui, sans-serif;
 }

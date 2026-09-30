@@ -28,6 +28,7 @@ function App() {
   const [imageFocused, setImageFocused] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [pinkHovered, setPinkHovered] = useState(false);
+  const [explodeSignal, setExplodeSignal] = useState(0);
 
   useEffect(() => {
     const blobCache = {};
@@ -141,6 +142,17 @@ function App() {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    const setVH = () =>
+      document.documentElement.style.setProperty(
+        "--app-height",
+        `${window.innerHeight}px`,
+      );
+    setVH();
+    window.addEventListener("resize", setVH);
+    return () => window.removeEventListener("resize", setVH);
+  }, []);
+
   const handleHover = useCallback((project) => {
     setHoveredProject(project);
   }, []);
@@ -162,6 +174,7 @@ function App() {
   const gridRef = useRef(null);
   const ringRef = useRef(null);
   const selectedRef = useRef(null);
+  const explodedRef = useRef(false);
   const carouselItemsRef = useRef([]);
   const [carouselOffset, setCarouselOffset] = useState(0);
 
@@ -232,13 +245,13 @@ function App() {
     const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
     const handleMouseMove = (e) => {
-      if (selectedRef.current || isMobile) return;
+      if (selectedRef.current || isMobile || explodedRef.current) return;
       targetX = (e.clientX / window.innerWidth - 0.5) * -20;
       targetY = (e.clientY / window.innerHeight - 0.5) * -20;
     };
 
     const animate = () => {
-      if (selectedRef.current) {
+      if (selectedRef.current || explodedRef.current) {
         targetX = 0;
         targetY = 0;
       }
@@ -369,6 +382,7 @@ function App() {
           onHover={handleHover}
           onSelect={handleSelect}
           isSelected={!!selectedProject}
+          explodeSignal={explodeSignal}
         />
       </div>
       <div
@@ -425,6 +439,10 @@ function App() {
           <span style={{ fontFamily: "NeueBit" }}>contact</span>
         </div>
         <div
+          onClick={() => {
+            explodedRef.current = true;
+            setExplodeSignal((s) => s + 1);
+          }}
           style={{
             paddingTop: "0px",
             paddingLeft: "7px",
@@ -433,6 +451,7 @@ function App() {
             backgroundColor: "#EFEFEF",
             color: "#A8ADAB",
             border: "1px solid #DADBDA",
+            cursor: "pointer",
           }}
         >
           <span
