@@ -1,61 +1,817 @@
+/* Neue Haas Grotesk Display Pro, the site's type, in the three weights it
+   uses: 55 Roman for the words, 65 Medium for the projects' names and the
+   weightier words along the foot, and 75 Bold for the headings and the
+   weightier words in the cards. They are served from public/fonts, cut down
+   to woff2 from the .otf files beside them, and the copy installed on this
+   machine is used first where there is one. 55 Roman calls itself 450 but
+   is declared at 400 here, as that is what plain text asks for. */
 @font-face {
-  font-family: "NeueBit";
-  src: url("./assets/NeueBit-Regular.ttf") format("truetype");
-  font-weight: normal;
+  font-family: "Neue Haas Grotesk Display Pro";
+  src:
+    local("Neue Haas Grotesk Display Pro 55 Roman"),
+    local("NHaasGroteskDSPro-55Rg"),
+    url("/fonts/NHaasGroteskDSPro-55Rg.woff2") format("woff2");
+  font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
-  font-family: "PPNeueBit";
-  src: url("./assets/PPNeueBit-Bold.ttf") format("truetype");
-  font-weight: normal;
+  font-family: "Neue Haas Grotesk Display Pro";
+  src:
+    local("Neue Haas Grotesk Display Pro 65 Medium"),
+    local("NHaasGroteskDSPro-65Md"),
+    url("/fonts/NHaasGroteskDSPro-65Md.woff2") format("woff2");
+  font-weight: 500;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
-  font-family: NeueHaasDisplayLight;
-  src: url("./assets/NeueHaasDisplayLight.ttf") format("truetype");
+  font-family: "Neue Haas Grotesk Display Pro";
+  src:
+    local("Neue Haas Grotesk Display Pro 75 Bold"),
+    local("NHaasGroteskDSPro-75Bd"),
+    url("/fonts/NHaasGroteskDSPro-75Bd.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
+/* Rigid Square, for the arrows after the directory's links. It is served
+   from public/, and the copy installed on this machine is used first where
+   there is one. Only the arrows are drawn in it, so it is asked for only
+   when one is on the page. */
 @font-face {
-  font-family: NeueHaasDisplayMed;
-  src: url("./assets/NHaasGroteskTXPro-65Md.otf") format("truetype");
+  font-family: "Rigid Square";
+  src:
+    local("Rigid Square Regular"),
+    local("RigidSquare-Regular"),
+    url("/RigidSquare-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
-@font-face {
-  font-family: Fraktion;
-  src: url("./assets/PPFraktionMono-Regular-BF675904a6a1564.otf") format("truetype");
-}
-
-@font-face {
-  font-family: FraktionBold;
-  src: url("./assets/PPFraktionSans-Bold-BF675904a667d89.otf") format("truetype");
-}
-
-@property --bg-edge {
-  syntax: "<color>";
-  inherits: false;
-  initial-value: #dbdbdb;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body {
-  overflow: hidden;
-  height: var(--app-height, 100svh);
-}
-
+/* The page's own ground is the directory's, so wherever a browser shows
+   it, round the edges or behind a phone's bars, it is the same grey, and
+   it goes dark with the directory. */
+html,
 body {
-  background-color: var(--bg-edge);
-  background-image: radial-gradient(circle, #ffffff 0%, var(--bg-edge) 100%);
-  transition: --bg-edge 0.4s ease;
+  margin: 0;
+  background: #f4f4f4;
+  transition: background-color 0.6s ease;
+}
+
+html:has(.dir-dark),
+html:has(.dir-dark) body {
+  background: #3a3a3a;
+}
+
+/* Grey tiles on a paler page, 4px apart. The columns are the reference's
+   own widths (433, 403, 223 and 365 of 1440), kept as shares so the grid
+   holds its proportions at any width. Every tile starts in the first
+   column, which stacks the projects down the left, and those that belong
+   further over say so. */
+.directory {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: var(--app-height, 100svh);
-  font-family: system-ui, sans-serif;
+  flex-direction: column;
+  /* The words cannot be selected, so the page answers the pointer as a
+     thing to press and hover over, not a document to copy from; the links
+     still follow. Safari still wants the prefix. */
+  -webkit-user-select: none;
+  user-select: none;
+  /* Measured by the grid inside, for the size of everything in it. */
+  container-type: size;
+  overflow-y: auto;
+  background: #f4f4f4;
+  /* The page's ground eases dark behind a project that asks for it, and
+     back, over about the time the tiles take to fade. */
+  transition: background-color 0.6s ease;
+  color: #3a3a3a;
+  font-family: "Neue Haas Grotesk Display Pro", "Neue Haas Grotesk Text Pro",
+    "Helvetica Neue", Helvetica, Arial, sans-serif;
+  line-height: 1.17;
+}
+
+/* Everything in the grid is sized in one unit, `--u`: one pixel of the
+   reference, scaled by however much of the reference's 1440 by 1024 the
+   page can hold, whichever way is tighter. The words are 12.5 of it, the
+   gaps 4 and the margins top and bottom 28, and every space inside the
+   tiles is in ems, so it follows the words.
+
+   Measured in that unit, the page is never narrower than 1440 or shorter
+   than 1024, so it always has at least the room the reference had. The
+   columns are never narrower, so no line breaks sooner than it does there,
+   and so nothing is taller; and the reference fits with room to spare. So
+   it fits in any window, and never scrolls, with the same layout: the
+   columns stretch to the width, and the tall tiles share out the height
+   (their shares are worked out with the tiles, in Directory.jsx), so the
+   space at the foot is the same as at the top. */
+.dir-grid {
+  --u: min(calc(100cqw / 1440), calc(100cqh / 1024));
+  flex: 1;
+  /* The window's height and no more. Left to itself the grid would be at
+     least as tall as its rows want when every tall row is kept in the same
+     proportion to the others, so a row whose words outgrow its share would
+     stretch all of them, and the page with them. Held to the window, the
+     tall rows only share out the height there is, each still never less
+     than its words need. */
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 433fr 403fr 223fr 365fr;
+  grid-template-rows: var(--dir-rows);
+  gap: calc(4 * var(--u));
+  padding: calc(28 * var(--u)) calc(4 * var(--u));
+  font-size: calc(12.5 * var(--u));
+}
+
+.dir-grid > * {
+  grid-column: 1;
+}
+
+.dir-grid > .dir-col-2 {
+  grid-column: 2;
+}
+
+.dir-grid > .dir-col-3 {
+  grid-column: 3;
+}
+
+.dir-grid > .dir-links {
+  grid-column: 2 / -1;
+}
+
+.directory p,
+.directory h2,
+.directory ul {
+  margin: 0;
+}
+
+.directory a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Every hover on the page is held off while the page is resting (see
+   `dir-idle` in Directory.jsx): a browser can leave something marked as
+   under the pointer when the page loses the pointer without it moving, as
+   when a link is opened in a new tab, and only puts it right once the
+   pointer moves again. */
+.directory:not(.dir-idle) a:hover {
+  text-decoration: underline;
+}
+
+/* A line along the foot is a link from end to end, and darkens under the
+   pointer as a whole, so it is not underlined as well. */
+.directory:not(.dir-idle) .dir-line:hover {
+  text-decoration: none;
+}
+
+/* The tiles' grey, kept in one place so a tile can be darkened under the
+   pointer, stripes and all. It is registered as a colour so the change can
+   be eased; a plain custom property would jump. */
+@property --tile {
+  syntax: "<color>";
+  /* Handed down, so what is drawn on a tile can take its colour too. */
+  inherits: true;
+  initial-value: #d8d8d8;
+}
+
+/* The darker grey a tile takes under the pointer, and the float button
+   keeps while the tiles are floating. */
+.directory {
+  --tile-dark: #c1c1c1;
+}
+
+.dir-tile {
+  --tile: #d8d8d8;
+  box-sizing: border-box;
+  padding: 0.7em;
+  background: var(--tile);
+  /* How long a tile takes to come back once the pointer has left it: long
+     enough that the tiles it has passed over are still fading behind it,
+     which leaves a trail across the page. */
+  transition: --tile 1.2s ease-in-out;
+}
+
+/* A tile darkens a shade under the pointer, all but at once, so it keeps
+   up with the pointer however fast it moves. A transition is taken from the
+   state being gone to, so this quick one is used on the way in and the long
+   one above on the way out. Only where there is a pointer to hover with, so
+   a tap on a phone does not leave a tile stuck dark. */
+@media (hover: hover) {
+  .directory:not(.dir-idle) .dir-tile:hover {
+    --tile: var(--tile-dark);
+    transition-duration: 0.1s;
+  }
+}
+
+/* When the page arrives the tiles fade in from the about row outwards:
+   that row first, then the rows either side of it together, and so on up
+   and down the page. Each tile is told how many rows it is from the about
+   row, as `--in`, and waits that many steps before it starts. A line along
+   the foot takes its turn from the column of lines it is in. Where motion
+   has been turned down, the page is simply there.
+
+   The steps are an even 0.1s, until the last two rows on each side, which
+   ease off: each of them is later again by 0.04s times the square of how
+   far it is into those two, so 0.04s more for the first and 0.16s for the
+   last. How far out its side goes, `--in-last`, is set on each tile by the
+   page, so it is always the last two, however many rows there are. It
+   holds a tile unseen while it waits, and lets go of it once it is in, so
+   a tile's own opacity has its say again after. */
+.dir-tile {
+  animation: dir-in 0.5s ease backwards;
+  animation-delay: calc(
+    0.1s * var(--in, 0) +
+      0.04s * pow(max(0, var(--in, 0) - (var(--in-last, 5) - 2)), 2)
+  );
+}
+
+@keyframes dir-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Arrived at by a project's address, the page opens on the project, and
+   does not come in round it first: until it is open, nothing else is seen,
+   and the ground goes dark at once if the project asks for it. */
+.dir-landed .dir-tile {
+  animation: none;
+}
+
+.dir-landing .dir-tile:not(.dir-chosen) {
+  opacity: 0;
+}
+
+.dir-landing,
+html:has(.dir-landing),
+html:has(.dir-landing) body {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dir-tile {
+    animation: none;
+  }
+}
+
+/* Who said the float button's quote, under it. */
+.dir-quote-by {
+  display: block;
+  margin-top: 0.4em;
+}
+
+/* A project tile opens when it is pressed. While one is open, the others
+   have faded and cannot be pressed, and nor can the parts of the open one
+   that faded as it drew down to its first line; pressing it again closes
+   it. */
+.dir-project {
+  cursor: pointer;
+}
+
+/* The running text on the page, the about, the history and a project's
+   description, is set a little more openly than the labels and names on
+   the tiles, which keep the tighter spacing they share with the arrows. */
+.dir-about-note,
+.dir-history,
+.dir-description {
+  line-height: 1.35;
+}
+
+.dir-description p{
+  max-width: 36em;
+
+}
+
+/* The page gone dark behind an open project that asks for it: the
+   buttons' ink taken most of the way down to black, so it keeps a trace of
+   their green. The bar, the description and the work stand on it as they
+   do on the light page. */
+.dir-dark {
+  background-color: #3a3a3a;
+}
+
+/* An open project's work on the directory: the whole window scrolls
+   through it a piece at a time, each caught as it arrives, level with the
+   bar, and none passed over; the bar and the description stay over it all.
+   The pieces run down the page in the room beside them, which the page
+   gives as `--top`, `--left` and `--right`, a gap apart. Each is as wide as
+   that room and as tall as its own shape makes it, up to 90vh, and fitted
+   whole; until a video knows its shape it is taken to be 16:9. The room
+   after the last lets it be caught level with the bar as well. The
+   scrollbar is hidden, as it is the page's own length in pieces, not a
+   panel within it. It is on the page, unseen and out of the way, while
+   the tile is still moving, and fades up once it is there. */
+.dir-carousel {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--top) var(--right) 100vh var(--left);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+
+.dir-carousel-shown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dir-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.dir-carousel-piece {
+  flex: none;
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 90vh;
+  aspect-ratio: auto 16 / 9;
+  object-fit: contain;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  scroll-margin-top: var(--catch);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+/* A piece fades up once it has something to show. */
+.dir-carousel-piece.dir-ready {
+  opacity: 1;
+}
+
+/* The description under an open project's bar, placed by the page. It is
+   kept in the grid, which sets the size of the type and the tiles, so it
+   has the same type, spacing and padding as every other tile, though as
+   it is placed by hand the grid does not lay it out. It is over the work,
+   as the bar is, and comes up as the work does. */
+.dir-description {
+  position: absolute;
+  z-index: 5;
+  color: #5a605d;
+}
+
+
+/* Scrolled on past, into the work, it fades away, and back as the page
+   comes back up to it. */
+.dir-description {
+  transition:
+    --tile 1.2s ease-in-out,
+    opacity 0.3s ease;
+}
+
+.dir-description.dir-past-by {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Paragraphs, and the link at the foot, a line's space apart. */
+.dir-description p + p {
+  margin-top: 1em;
+}
+
+/* A striped tile is work that cannot be shown, so it does not open. */
+.dir-project.dir-striped {
+  cursor: default;
+}
+
+.dir-open .dir-tile:not(.dir-chosen):not(.dir-description),
+.dir-open .dir-chosen .dir-fades {
+  pointer-events: none;
+}
+
+/* The back arrow before an open project's name. It is there on every tile
+   but folded away to nothing, and opens out once the tile has reached the
+   top, so the name slides over to make room rather than jumping; it folds
+   away again as soon as the tile is closed. Its box is the height of the
+   line and set at its top, since a box that hides what overflows it would
+   otherwise sit on the line by its foot. */
+.dir-back {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  vertical-align: top;
+  white-space: nowrap;
+  opacity: 0;
+  transition:
+    max-width 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.dir-shown .dir-chosen .dir-back {
+  max-width: 2em;
+  opacity: 1;
+}
+
+/* The float button is a button, so it is stripped of what a browser gives
+   one and made to look like the tiles about it. */
+.dir-float {
+  appearance: none;
+  margin: 0;
+  border: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* While the tiles are floating, the float button stays dark, as it is
+   under the pointer, so it shows the tiles are out; and eases back with the
+   rest when they are called home. */
+.dir-float[aria-pressed="true"] {
+  --tile: var(--tile-dark);
+}
+
+/* While the tiles are floating they can be picked up. Each is moved by a
+   transform every frame, which the browser is told about ahead. */
+.dir-floating .dir-tile {
+  will-change: transform;
+  cursor: grab;
+}
+
+.dir-floating .dir-tile:active {
+  cursor: grabbing;
+}
+
+/* Called home, each tile eases back from wherever it has drifted to. The
+   darkening keeps its own timing alongside, including the quick one under
+   the pointer. The length is SETTLE_MS in float.js. */
+.dir-settling .dir-tile {
+  transition:
+    --tile 1.2s ease-in-out,
+    transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.directory:not(.dir-idle).dir-settling .dir-tile:hover {
+  transition-duration: 0.1s, 0.8s;
+}
+
+/* A tile striped over on the slant in white, for work that cannot be
+   shown. The stripes are sized in the grid's unit, so they keep their width
+   against the words at any window size. A hairline of the tiles' own grey
+   closes the white stripes off at the edges, so the tile keeps its outline
+   against the pale page; it stays a single pixel at any size, and sits
+   inside the tile, so the tile is no bigger for it. */
+.dir-striped {
+  border: 1px solid var(--tile);
+  /* A soft white glow even all round the words, so they lift off the
+     stripes behind them. It is laid on twice, a tight one close in under
+     the one that spreads, which thickens it without spreading it any
+     further. In ems, so it keeps its size against the words. */
+  text-shadow:
+    0 0 0.1em #fff,
+    0 0 0.2em #fff;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--tile) 0 calc(3 * var(--u)),
+    #ffffff calc(3 * var(--u)) calc(6 * var(--u))
+  );
+}
+
+/* A project splits down the middle, and each half keeps its last lines at
+   the foot however tall the tile is. */
+.dir-project {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7em;
+  /* The same ink as the lines along the foot: the name and the link at
+     full strength, and what kind of client it was, who for, and what was
+     done lighter, at 70%. The lightness is in the colour rather than an
+     opacity, so a striped tile's white glow behind the words keeps its
+     full strength. */
+  color: #5a605d;
+}
+
+.dir-half {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.4em;
+}
+
+.dir-name {
+  font-size: inherit;
+  font-weight: 500;
+}
+
+/* A select work's star, in the tile's top right corner, centred on the
+   first line so it sits level with the name and the kind. `--star` is its
+   size; the kind keeps clear of it by that and a little more. On a striped
+   tile it has the same white glow as the words. */
+.dir-project {
+  --star: 1.2em;
+  position: relative;
+}
+
+.dir-star {
+  position: absolute;
+  top: calc(0.7em + (1.17em - var(--star)) / 2);
+  right: 0.7em;
+  width: var(--star);
+  height: var(--star);
+}
+
+.dir-selected .dir-kind {
+  padding-right: calc(var(--star) + 0.6em);
+}
+
+.dir-striped .dir-star {
+  filter: drop-shadow(0 0 0.1em #fff) drop-shadow(0 0 0.1em #fff);
+}
+
+.dir-kind {
+  font-weight: 500;
+  color: rgb(90 96 93 / 0.7);
+}
+
+.dir-soft {
+  color: rgb(90 96 93 / 0.7);
+}
+
+/* Under the pointer, a project's kind and services come up to full
+   strength, as its tile darkens under them. They come and go on the tile's
+   own timing: up at once, and back down over the same long fade as the
+   tile's trail. */
+.dir-project .dir-kind,
+.dir-project .dir-foot.dir-soft {
+  transition: color 1.2s ease-in-out;
+}
+
+@media (hover: hover) {
+  .directory:not(.dir-idle) .dir-project:hover .dir-kind,
+  .directory:not(.dir-idle) .dir-project:hover .dir-foot.dir-soft {
+    color: #5a605d;
+    transition-duration: 0.1s;
+  }
+}
+
+/* The arrows, a size up on the words about them, `--arrow` times as big.
+   A bigger glyph would push its line apart, so its own line height is
+   brought down by as much, which keeps it the height of the line it sits
+   on: 1.17 in the running text, and 1 on the lines along the foot. */
+.dir-arrow {
+  --arrow: 1.2;
+  font-family: "Rigid Square", "Neue Haas Grotesk Display Pro", "Helvetica Neue",
+    Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  font-size: calc(var(--arrow) * 1em);
+  line-height: calc(1.17 / var(--arrow));
+}
+
+.dir-line .dir-arrow {
+  line-height: calc(1 / var(--arrow));
+}
+
+/* The cards: an icon, a heading under it, and their words, in the buttons'
+   ink, #434a47, weightier where it matters, and at half strength for the
+   incidental ones, as the projects and the lines have theirs. They are the
+   same grey as every other tile. */
+.dir-card {
+  display: flex;
+  flex-direction: column;
+  color: #434a47;
+}
+
+/* The picked out words in the cards, in the about text and the names in
+   the history, are in the medium weight; only the headings are bold. */
+.dir-card strong {
+  font-weight: 500;
+}
+
+.dir-card .dir-muted {
+  color: rgb(67 74 71 / 0.5);
+}
+
+/* The lines along the foot are in a lighter shade of the buttons' ink,
+   #434a47 taken an eighth of the way to white: as light as it can go and
+   still be read at this size on the tiles' grey (4.5 to 1). Their titles
+   stand out by weight. The tag before each is set in the same weight as
+   the title, at half strength, so it reads as part of the title's label
+   but steps back from it. */
+.dir-line strong {
+  font-weight: 500;
+}
+
+.dir-line .dir-muted {
+  color: inherit;
+  font-weight: 500;
+  opacity: 0.5;
+}
+
+/* The date at the end steps back the same way, though not the arrow after
+   it, which is what says the line goes somewhere. */
+.dir-date {
+  opacity: 0.5;
+}
+
+.dir-muted {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* The cards' icons: marks cut out of a disc in the words' own ink. The
+   marks are the tile's own grey, whatever it is at the moment, so they read
+   as holes through to the tile, and darken with it under the pointer. They
+   are drawn, so they stay sharp at any size, and keep their size against
+   the words, as everything on the page does. */
+.dir-icon {
+  display: block;
+  width: 1.4em;
+  height: 1.4em;
+  color: var(--tile);
+}
+
+.dir-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The discs run right to the edge of their drawings, and a drawing cuts
+     off whatever falls outside it, which takes the soft edge pixels off
+     whichever side lands between two pixels and leaves the disc flattened
+     there. So the edge is let spill out. */
+  overflow: visible;
+}
+
+.dir-heading {
+  margin-top: 0.7em !important;
+  font-size: inherit;
+  font-weight: 700;
+}
+
+.dir-about-note {
+  max-width: 36em;
+  margin-top: auto;
+  padding-top: 2.4em;
+}
+
+.dir-about-note p + p {
+  margin-top: 1.2em;
+}
+
+/* The links spread down the tile, the last one at its foot. */
+.dir-links ul {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* As far under the icon as a heading would be. */
+  margin: 0.7em 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dir-history {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2em;
+  margin-top: 1.2em;
+  max-width: 45%;
+}
+
+.dir-history strong {
+  display: block;
+}
+
+/* One tile to a line, stacked the same 4px apart as the grid. */
+.dir-lines {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4 * var(--u));
+  align-self: start;
+}
+
+/* The ink is set on the column rather than the line, so a line that is a
+   link takes it too, links being told to take their colour from about
+   them. The words run on from the left, and the arrow keeps to the right
+   hand end. */
+.dir-lines {
+  color: #5a605d;
+}
+
+.dir-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7em;
+  padding: 0.3em 0.7em;
+  line-height: 1;
+}
+
+.dir-line-arrow {
+  margin-left: auto;
+}
+
+/* On a narrow screen the columns give way to one. The page scrolls there
+   anyway, so the rows are left to the tiles, and a tall row's tile keeps
+   the reference's height as it is. */
+@media (max-width: 800px) {
+  /* A phone is too narrow to hold the four columns at any size worth
+     reading, so here the page is one column that scrolls, at the
+     reference's own sizes. */
+  /* Here it is the page itself that scrolls, not a box held over it, so a
+     phone's browser runs the page on under its bars, and draws them down
+     out of the way as it is scrolled. */
+  .directory {
+    position: relative;
+    inset: auto;
+    min-height: 100vh;
+    container-type: normal;
+    overflow: visible;
+  }
+
+  /* An open project's work runs on down the page, under its description,
+     and the page scrolls through it a piece at a time, each caught under
+     the bar, which is held to the top of the window over it; the
+     description scrolls away with the page, and is caught on the way back
+     up. */
+  html.dir-snapping {
+    scroll-snap-type: y mandatory;
+  }
+
+  .dir-carousel {
+    bottom: auto;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+
+  /* The start of the work, caught as the pieces are, where the page is
+     back at its top, with the description over the work. */
+  .dir-carousel-start {
+    flex: none;
+    height: 0;
+    margin-bottom: calc(-1 * var(--gap));
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    scroll-margin-top: var(--top);
+  }
+
+  /* An open project's bar comes to rest this far down the window. Safari
+     colours its own bar at the top of the screen after whatever is held to
+     the window at a point 8px down from the top, and this is the nearest
+     the bar can be and miss it, so the work shows through there instead
+     of a bar of grey. */
+  .directory {
+    --bar-top: 9px;
+  }
+
+
+  .dir-grid {
+    --u: 1px;
+    /* Here the page scrolls, and the grid is as long as its tiles. */
+    min-height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    padding: 4px 4px 24px;
+  }
+
+  .dir-tile {
+    min-height: var(--tall, auto);
+  }
+
+  .dir-grid > .dir-col-2,
+  .dir-grid > .dir-col-3,
+  .dir-grid > .dir-links {
+    grid-column: 1;
+  }
+
+  .dir-links {
+    min-height: 160px;
+  }
+
+  /* The bio comes first, the links last, and the education and experience
+     are left to the bio, which covers them. The float button is left off:
+     tiles the page's full width have nowhere to float to. */
+  .dir-about {
+    order: -1;
+  }
+
+  .dir-links {
+    order: 1;
+  }
+
+  .dir-past,
+  .dir-float {
+    display: none;
+  }
+
+  /* A project's kind is cut at its first "+" or "/". */
+  .dir-kind-rest {
+    display: none;
+  }
 }
