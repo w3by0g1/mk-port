@@ -60,6 +60,7 @@ const tileStyle = (turn, height) => ({
   ...(height ? { "--tall": `${height}px` } : {}),
   ...(turn ? { "--in": turn.at } : {}),
   ...(turn?.last !== undefined ? { "--in-last": turn.last } : {}),
+  ...(turn?.down !== undefined ? { "--down": turn.down } : {}),
 });
 
 // The about text, a paragraph to a block, with its bold runs picked out.
@@ -303,7 +304,11 @@ function Lines({ items, turn, className = "" }) {
           <Line
             key={_key}
             className="dir-tile dir-line"
-            style={tileStyle({ ...turn, at: turn.at + i })}
+            style={tileStyle({
+              ...turn,
+              at: turn.at + i,
+              ...(turn.down !== undefined ? { down: turn.down + i } : {}),
+            })}
             {...(url ? { href: url, target: "_blank", rel: "noreferrer" } : {})}
           >
             <span>
@@ -562,10 +567,17 @@ function Directory() {
   }
 
   // Every project but the last two stacks down the first column; those two
-  // sit side by side under them.
+  // sit side by side under them. The page keeps its rows whatever the count,
+  // so with too few to fill the stacked rows and the pair, the projects take
+  // the rows in order: the stacked rows first, at their own heights, and
+  // then the pair's first place, in the first column, before its second.
   const { projects, profile, quote } = content;
-  const stacked = projects.slice(0, -2);
-  const [left, right] = projects.slice(-2);
+  const rowsFirst =
+    projects.length >= PROJECT_ROWS.length + 2
+      ? projects.length - 2
+      : Math.min(projects.length, PROJECT_ROWS.length);
+  const stacked = projects.slice(0, rowsFirst);
+  const [left, right] = projects.slice(rowsFirst);
 
   // The rows, counted down the page, and how many each is from the about
   // row, which fades in first; the rest follow it outwards, a row at a time
@@ -580,6 +592,14 @@ function Directory() {
   );
   const above = (row) => ({ at: aboutRow - row, last: aboutRow - 1 });
   const below = (at) => ({ at, last: 1 + lines });
+  // On a phone, where the page is one column, they come in from the top
+  // down instead, each tile after the one above it: the about card, the
+  // projects, the lines along the foot, a column after the other, and the
+  // links last. The history and the float button are not shown there.
+  const mixes = profile.mixes?.length ?? 0;
+  const releases = profile.releases?.length ?? 0;
+  const footAt = 1 + projects.length;
+  const down = (turn, at) => ({ ...turn, down: at });
 
   return (
     <div
@@ -595,7 +615,7 @@ function Directory() {
           <Project
             key={project._id}
             {...project}
-            turn={above(i + 1)}
+            turn={down(above(i + 1), 1 + i)}
             height={rowFor(i)}
             chosen={opened?._id === project._id}
             onPress={(tile) => press(project, tile)}
@@ -604,7 +624,7 @@ function Directory() {
         {left && (
           <Project
             {...left}
-            turn={above(aboutRow - 1)}
+            turn={down(above(aboutRow - 1), 1 + stacked.length)}
             chosen={opened?._id === left._id}
             onPress={(tile) => press(left, tile)}
           />
@@ -612,7 +632,7 @@ function Directory() {
         {right && (
           <Project
             {...right}
-            turn={above(aboutRow - 1)}
+            turn={down(above(aboutRow - 1), 2 + stacked.length)}
             chosen={opened?._id === right._id}
             onPress={(tile) => press(right, tile)}
             className="dir-col-2"
@@ -622,7 +642,7 @@ function Directory() {
         <Card
           title={profile.name}
           icon={bioIcon}
-          turn={{ at: 0 }}
+          turn={{ at: 0, down: 0 }}
           height={ABOUT_ROW}
           className="dir-about"
         >
@@ -632,7 +652,11 @@ function Directory() {
         </Card>
         {/* An icon but no heading: the links say what they are, with their
             arrows after them, as the others on the page have. */}
-        <Card icon={linksIcon} turn={{ at: 0 }} className="dir-links">
+        <Card
+          icon={linksIcon}
+          turn={{ at: 0, down: footAt + mixes + releases }}
+          className="dir-links"
+        >
           <ul>
             {(profile.links ?? []).map(({ _key, label, url }) => (
               <li key={_key}>
@@ -670,8 +694,12 @@ function Directory() {
           )}
         </Card>
 
-        <Lines items={profile.mixes} turn={below(2)} />
-        <Lines items={profile.releases} turn={below(2)} className="dir-col-2" />
+        <Lines items={profile.mixes} turn={down(below(2), footAt)} />
+        <Lines
+          items={profile.releases}
+          turn={down(below(2), footAt + mixes)}
+          className="dir-col-2"
+        />
 
         {/* In the grid, though placed by hand rather than by it, so it is
             sized and set as every other tile is. */}

@@ -770,8 +770,11 @@ html:has(.dir-landing) body {
     padding: 4px 4px 24px;
   }
 
+  /* The tiles come in from the top of the column down, each a step after
+     the one above it, as the page gives it in `--down`. */
   .dir-tile {
     min-height: var(--tall, auto);
+    animation-delay: calc(0.07s * var(--down, 0));
   }
 
   .dir-grid > .dir-col-2,
