@@ -3,14 +3,65 @@
 // apart, across the width of the grid, until they are called back.
 //
 // As with floating, the tiles stay where they are in the page and are only
-// moved by a transform, which the stylesheet eases them along, out to their
-// new places and home again.
+// moved by a transform. They do not travel to their new places, or back
+// to their own: each blinks out where it is, and blinks back in where it
+// is going, a moment apart from the others.
 
-import { settle, unsettle } from "./float.js";
+import { homeBy, unsettle } from "./float.js";
 
 // How many random orders are tried for one that fits the window before the
 // shortest of them is taken instead.
 const TRIES = 200;
+
+// A blink, as a light does that has just been switched on, or off: on,
+// off, on again, off for a moment less, and then on for good, with no fade
+// between. Each tile waits up to BLINK_SPREAD before it starts, so they go
+// one by one rather than all at once.
+const BLINK_IN = [0, 1, 0, 1, 0, 1, 1];
+const BLINK_AT = [0, 0.25, 0.45, 0.65, 0.75, 0.85, 1];
+const BLINK_MS = 100;
+const BLINK_SPREAD = 150;
+const blink = (el, to) =>
+  el.animate(
+    BLINK_AT.map((offset, i) => ({
+      offset,
+      opacity: to ? BLINK_IN[i] : 1 - BLINK_IN[i],
+      easing: "steps(1, end)",
+    })),
+    {
+      duration: BLINK_MS,
+      delay: Math.random() * BLINK_SPREAD,
+      // Unseen while it waits to blink in, and once it has blinked out.
+      fill: to ? "backwards" : "forwards",
+    },
+  );
+const STILL = "(prefers-reduced-motion: reduce)";
+
+// Blinks the tiles out, calls `move` while they are unseen, and blinks them
+// back in, and gives back a function that stops it where it is, every tile
+// seen again. Where motion has been turned down, they are simply moved.
+function blinkOver(els, move) {
+  if (window.matchMedia(STILL).matches) {
+    move();
+    return () => {};
+  }
+  let stopped = false;
+  let blinks = els.map((el) => blink(el, false));
+  Promise.all(blinks.map((b) => b.finished)).then(
+    () => {
+      if (stopped) return;
+      move();
+      const out = blinks;
+      blinks = els.map((el) => blink(el, true));
+      for (const b of out) b.cancel();
+    },
+    () => {},
+  );
+  return () => {
+    stopped = true;
+    for (const b of blinks) b.cancel();
+  };
+}
 
 // Fits tiles together in the order given. Each goes as high as it can, and
 // as far left as it can at that height, with the gap kept to the tiles
@@ -84,7 +135,6 @@ const shuffled = (list) => {
 // Shuffles the tiles, and gives back a function to call them home.
 export function arrange(root) {
   unsettle(root);
-  root.classList.add("dir-arranged");
 
   // Only the tiles that are shown; a phone leaves some out.
   const els = [...root.querySelectorAll(".dir-tile")].filter(
@@ -136,13 +186,31 @@ export function arrange(root) {
       el.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px)`;
     });
   };
-  lay();
-  const watcher = new ResizeObserver(lay);
+  let placed = false;
+  const stopOut = blinkOver(els, () => {
+    placed = true;
+    lay();
+  });
+  // Fitted again as the window changes, once they are in their places.
+  const watcher = new ResizeObserver(() => placed && lay());
   watcher.observe(root);
 
+  // Home the same way, out where they are and in where they belong; or, if
+  // they had not got to their new places yet, simply stopped. Letting them
+  // go again before they are home sees them home at once.
   return () => {
     watcher.disconnect();
-    root.classList.remove("dir-arranged");
-    settle(root, els);
+    stopOut();
+    if (!placed) return;
+    let home = false;
+    const goHome = () => {
+      home = true;
+      for (const el of els) el.style.transform = "";
+    };
+    const stopHome = blinkOver(els, goHome);
+    homeBy(() => {
+      stopHome();
+      if (!home) goHome();
+    });
   };
 }

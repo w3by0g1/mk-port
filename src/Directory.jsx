@@ -14,6 +14,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fetchDirectory } from "./directory.js";
 import { float } from "./float.js";
 import { arrange } from "./arrange.js";
+import { glassTaps, isMuted, setMuted } from "./glass.js";
 import { openTile, closeTile, PHONE } from "./open.js";
 import Carousel from "./Carousel.jsx";
 import bioIcon from "./assets/icons/bio.svg?raw";
@@ -334,7 +335,15 @@ function Description({ text, link, bar, onMeasure }) {
 // each takes the turn after the one above it. A line with somewhere to go
 // is a link from end to end, with its arrow at the far end; one without
 // keeps the arrow but goes nowhere.
-function Lines({ items, turn, className = "" }) {
+// Anything `after` the lines is drawn as one more of them, and given its
+// style, which takes its turn after theirs.
+function Lines({ items, turn, after, className = "" }) {
+  const styleAt = (i) =>
+    tileStyle({
+      ...turn,
+      at: turn.at + i,
+      ...(turn.down !== undefined ? { down: turn.down + i } : {}),
+    });
   return (
     <div className={`dir-lines ${className}`}>
       {(items ?? []).map(({ _key, tag, title, with: others, date, url }, i) => {
@@ -343,11 +352,7 @@ function Lines({ items, turn, className = "" }) {
           <Line
             key={_key}
             className="dir-tile dir-line"
-            style={tileStyle({
-              ...turn,
-              at: turn.at + i,
-              ...(turn.down !== undefined ? { down: turn.down + i } : {}),
-            })}
+            style={styleAt(i)}
             {...(url ? { href: url, target: "_blank", rel: "noreferrer" } : {})}
           >
             <span>
@@ -360,7 +365,60 @@ function Lines({ items, turn, className = "" }) {
           </Line>
         );
       })}
+      {after?.(styleAt(items?.length ?? 0))}
     </div>
+  );
+}
+
+// A speaker, for the sound line: with its sound coming out of it, or
+// crossed out. Drawn, as the star is, in the ink of the words beside it.
+function Speaker({ off }) {
+  return (
+    <svg className="dir-speaker" viewBox="0 0 16 16" aria-hidden="true">
+      <path fill="currentColor" d="M1.5 5.5h3l4-3.5v12l-4-3.5h-3z" />
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      >
+        {off ? (
+          <path d="M11 6l4 4M15 6l-4 4" />
+        ) : (
+          <>
+            <path d="M11 5.5a3.5 3.5 0 0 1 0 5" />
+            <path d="M13 3.5a6.5 6.5 0 0 1 0 9" />
+          </>
+        )}
+      </g>
+    </svg>
+  );
+}
+
+// The line that turns the page's sound off and on, saying which it will
+// do, with a speaker to match: crossed out to mute it, sounding to unmute
+// it.
+function SoundLine({ style }) {
+  const [off, setOff] = useState(isMuted);
+  return (
+    <button
+      type="button"
+      className="dir-tile dir-line dir-sound"
+      style={style}
+      onClick={() => {
+        setMuted(!off);
+        setOff(!off);
+      }}
+    >
+      <Speaker off={!off} />
+      <strong>
+        {off ? "Unmute sound" : "Mute sound"}
+        {/* Unseen, but the line is as tall as one with an arrow. */}
+        <span className="dir-arrow dir-sound-strut" aria-hidden="true">
+          ↘
+        </span>
+      </strong>
+    </button>
   );
 }
 
@@ -525,6 +583,12 @@ function Directory() {
     return () => window.removeEventListener("keydown", escape);
   });
 
+  // A tap on glass as the pointer comes onto a tile, and as one is pressed.
+  useEffect(() => {
+    if (!content) return undefined;
+    return glassTaps(root.current);
+  }, [content]);
+
   useEffect(() => {
     if (!floating) return undefined;
     if (floating === "arrange") return arrange(root.current);
@@ -638,9 +702,10 @@ function Directory() {
   // Above the about row the rows are the projects, the top one furthest
   // out. Below it are the history row and then the lines along the foot,
   // a row each, the longer column's last line furthest out.
+  // The releases' column has the sound line at its foot as well.
   const lines = Math.max(
     profile.mixes?.length ?? 0,
-    profile.releases?.length ?? 0,
+    (profile.releases?.length ?? 0) + 1,
   );
   const above = (row) => ({ at: aboutRow - row, last: aboutRow - 1 });
   const below = (at) => ({ at, last: 1 + lines });
@@ -650,7 +715,7 @@ function Directory() {
   // column after the other, and the links last. The float button is not
   // shown there.
   const mixes = profile.mixes?.length ?? 0;
-  const releases = profile.releases?.length ?? 0;
+  const releases = (profile.releases?.length ?? 0) + 1;
   const pastAt = 1 + projects.length;
   const footAt = pastAt + 2;
   const down = (turn, at) => ({ ...turn, down: at });
@@ -761,6 +826,7 @@ function Directory() {
         <Lines
           items={profile.releases}
           turn={down(below(2), footAt + mixes)}
+          after={(style) => <SoundLine style={style} />}
           className="dir-col-2"
         />
 

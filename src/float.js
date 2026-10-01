@@ -11,6 +11,11 @@
 //
 // Matter.js is fetched the first time the tiles are let go, not before, so
 // the page carries none of its weight until then.
+//
+// Every knock of a tile into another, or into an edge, is heard, as hard
+// as it was (see glass.js).
+
+import { knock } from "./glass.js";
 
 // How fast a tile drifts once it has been let go, in pixels a step (a step
 // being a sixtieth of a second). A tile that has been slowed, by a knock or
@@ -63,10 +68,18 @@ const SETTLE_MS = 1400;
 // in the middle of one does not have it end this one early.
 let settling = 0;
 
+// A homecoming of some other kind still under way, and how to end it.
+let homecoming = null;
+export function homeBy(end) {
+  homecoming = end;
+}
+
 // Before the tiles go anywhere, any homecoming still under way is ended.
 export function unsettle(root) {
   clearTimeout(settling);
   root.classList.remove("dir-settling");
+  homecoming?.();
+  homecoming = null;
 }
 
 // Calls the tiles home: their transforms are taken off under a transition,
@@ -90,6 +103,12 @@ export function float(root, { gravity = false } = {}) {
     stop();
   };
 }
+
+// A knock is only heard from a tile going at least this fast into whatever
+// it meets, in pixels a step, so tiles resting against each other in a
+// pile are quiet; and at its hardest from this fast.
+const KNOCK_SOFTEST = 0.4;
+const KNOCK_HARDEST = 8;
 
 function run(Matter, root, gravity) {
   const { Engine, Bodies, Body, Composite, Mouse, MouseConstraint, Events } =
@@ -234,6 +253,25 @@ function run(Matter, root, gravity) {
   };
   Events.on(engine, "beforeUpdate", drift);
 
+  // The tiles knocking into each other, and into the edges, are heard: one
+  // knock a step, as hard as the hardest of them, by how fast the two were
+  // closing on each other.
+  const knocked = ({ pairs }) => {
+    let hardest = 0;
+    for (const { bodyA, bodyB, collision } of pairs) {
+      const a = Body.getVelocity(bodyA);
+      const b = Body.getVelocity(bodyB);
+      const { x, y } = collision.normal;
+      const closing = Math.abs((a.x - b.x) * x + (a.y - b.y) * y);
+      hardest = Math.max(hardest, closing);
+    }
+    if (hardest < KNOCK_SOFTEST) return;
+    knock(
+      Math.min(1, (hardest - KNOCK_SOFTEST) / (KNOCK_HARDEST - KNOCK_SOFTEST)),
+    );
+  };
+  Events.on(engine, "collisionStart", knocked);
+
   // Each frame, the world is stepped on and every tile is moved from its
   // place in the grid to where its body is.
   let frame = 0;
@@ -269,6 +307,7 @@ function run(Matter, root, gravity) {
     root.removeEventListener("mousedown", mouse.mousedown);
     root.removeEventListener("mouseup", mouse.mouseup);
     Events.off(engine, "beforeUpdate", drift);
+    Events.off(engine, "collisionStart", knocked);
     Composite.clear(engine.world, false);
     Engine.clear(engine);
 

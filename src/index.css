@@ -474,20 +474,18 @@ html:has(.dir-landing) body {
   cursor: grabbing;
 }
 
-/* Called home, each tile eases back from wherever it has drifted to, and
-   shuffled, out to its new place: it sets off at once, still going as it
-   was, and slows the whole way, drawing gently to a stop. The darkening
-   keeps its own timing alongside, including the quick one under the
-   pointer. The length is SETTLE_MS in float.js. */
-.dir-settling .dir-tile,
-.dir-arranged .dir-tile {
+/* Called home, each tile eases back from wherever it has drifted to or
+   been shuffled to: it sets off at once, still going as it was, and slows
+   the whole way, drawing gently to a stop. The darkening keeps its own
+   timing alongside, including the quick one under the pointer. The length
+   is SETTLE_MS in float.js. */
+.dir-settling .dir-tile {
   transition:
     --tile 1.2s ease-in-out,
     transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.directory:not(.dir-idle).dir-settling .dir-tile:hover,
-.directory:not(.dir-idle).dir-arranged .dir-tile:hover {
+.directory:not(.dir-idle).dir-settling .dir-tile:hover {
   transition-duration: 0.1s, 1.4s;
 }
 
@@ -771,6 +769,45 @@ html:has(.dir-landing) body {
   line-height: 1;
 }
 
+/* The sound line is a button, stripped of what a browser gives one, as the
+   float button is, and dark, in a lighter shade of the cards' ink, with
+   its words and speaker in white, so it reads as something to press rather
+   than one of the lines above it; darker again under the pointer. Its
+   speaker comes before its words. White on it is 4.7 to 1. */
+.dir-sound {
+  --tile: #6f7472;
+  appearance: none;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  font: inherit;
+  /* Put back after the font, which brings in the page's own. */
+  line-height: 1;
+  letter-spacing: inherit;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dir-speaker {
+  flex: none;
+  align-self: center;
+  width: 1em;
+  height: 1em;
+}
+
+@media (hover: hover) {
+  .directory:not(.dir-idle) .dir-sound:hover {
+    --tile: #5d6260;
+  }
+}
+
+.dir-sound-strut {
+  display: inline-block;
+  width: 0;
+  visibility: hidden;
+}
+
 .dir-line-arrow {
   margin-left: auto;
 }
@@ -865,7 +902,8 @@ html:has(.dir-landing) body {
 
   /* The bio comes first, the links last, and the education and experience
      go between the projects and the mixes. The float button is left off:
-     tiles the page's full width have nowhere to float to. */
+     tiles the page's full width have nowhere to float to. So is the sound
+     line, as a phone makes no sound. */
   .dir-about {
     order: -1;
   }
@@ -874,7 +912,8 @@ html:has(.dir-landing) body {
     order: 1;
   }
 
-  .dir-float {
+  .dir-float,
+  .dir-sound {
     display: none;
   }
 
