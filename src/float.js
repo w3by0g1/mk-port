@@ -1,6 +1,7 @@
 // Sets the directory's tiles loose: each one becomes a body in a Matter.js
-// world with nothing pulling on it, and they drift about the page, knocking
-// into each other and off its edges, until they are called back.
+// world, until they are called back. Floating, nothing pulls on them, and
+// they drift about the page, knocking into each other and off its edges.
+// Under gravity, they fall, tumble and pile up at the foot of the page.
 //
 // The tiles stay where they are in the page, words, links and all, and are
 // only moved by a transform from their place in the grid to where their
@@ -30,6 +31,23 @@ const MAX_SPEED = 24;
 const BOUNCE = 0.8;
 const AIR = 0.01;
 const SPIN = 0.006;
+// Under gravity a tile lands rather than bounces, and grips what it lands
+// on, so the pile settles. Each is let go with the slightest turn, so they
+// tip off one another as things do, rather than dropping straight down in
+// their columns.
+const FALLING = {
+  restitution: 0.15,
+  friction: 0.4,
+  frictionStatic: 0.6,
+  frictionAir: 0.005,
+};
+const TIP = 0.002;
+// A thin tile under a heavy one is pressed into whatever is beneath it
+// faster than a step can push them apart, and the two end up overlapping.
+// So under gravity each step is taken in a few smaller ones, and a tile's
+// weight goes with the square root of its size rather than its size, so
+// the big tiles are still the heavier but no longer crush the lines.
+const SUBSTEPS = 4;
 // The walls round the page are thick, so nothing gets through them however
 // hard it is thrown.
 const WALL = 400;
@@ -39,18 +57,33 @@ const STEP = 1000 / 60;
 const MAX_STEPS = 3;
 // How long the tiles take to ease home once they are called back; the same
 // as the transition on `.dir-settling .dir-tile` in the stylesheet.
-const SETTLE_MS = 800;
+const SETTLE_MS = 1400;
 
 // The wait for the last homecoming to finish, so letting the tiles go again
 // in the middle of one does not have it end this one early.
 let settling = 0;
 
-// Lets the tiles go, and gives back a function to call them home.
-export function float(root) {
+// Before the tiles go anywhere, any homecoming still under way is ended.
+export function unsettle(root) {
+  clearTimeout(settling);
+  root.classList.remove("dir-settling");
+}
+
+// Calls the tiles home: their transforms are taken off under a transition,
+// so every tile eases back to its place.
+export function settle(root, els) {
+  root.classList.add("dir-settling");
+  for (const el of els) el.style.transform = "";
+  settling = setTimeout(() => root.classList.remove("dir-settling"), SETTLE_MS);
+}
+
+// Lets the tiles go, to float or to fall, and gives back a function to call
+// them home.
+export function float(root, { gravity = false } = {}) {
   let stopped = false;
   let stop = () => {};
   import("matter-js").then(({ default: Matter }) => {
-    if (!stopped) stop = run(Matter, root);
+    if (!stopped) stop = run(Matter, root, gravity);
   });
   return () => {
     stopped = true;
@@ -58,17 +91,22 @@ export function float(root) {
   };
 }
 
-function run(Matter, root) {
+function run(Matter, root, gravity) {
   const { Engine, Bodies, Body, Composite, Mouse, MouseConstraint, Events } =
     Matter;
 
-  clearTimeout(settling);
-  root.classList.remove("dir-settling");
+  unsettle(root);
   root.classList.add("dir-floating");
 
-  const engine = Engine.create();
+  // Under gravity the tiles come to rest in a pile, and are let sleep there
+  // so it holds still rather than shivering; a few more passes over each
+  // step keep the pile from sinking into itself.
+  const engine = Engine.create({
+    enableSleeping: gravity,
+    positionIterations: gravity ? 10 : 6,
+  });
   engine.gravity.x = 0;
-  engine.gravity.y = 0;
+  engine.gravity.y = gravity ? 1 : 0;
 
   // A body for every tile. Its home is its place in the grid, measured in
   // the page's own coordinates so it holds however far the page is
@@ -86,13 +124,20 @@ function run(Matter, root) {
       drawn.top + drawn.height / 2 + root.scrollTop,
       el.offsetWidth,
       el.offsetHeight,
-      {
-        restitution: BOUNCE,
-        friction: 0.02,
-        frictionStatic: 0,
-        frictionAir: AIR,
-      },
+      gravity
+        ? FALLING
+        : {
+            restitution: BOUNCE,
+            friction: 0.02,
+            frictionStatic: 0,
+            frictionAir: AIR,
+          },
     );
+    if (gravity) {
+      Body.setMass(body, Math.sqrt(body.mass));
+      Body.setAngularVelocity(body, (Math.random() - 0.5) * 2 * TIP);
+      return { el, home, body };
+    }
     // Each goes its own way, at around the speed it will keep.
     const heading = Math.random() * Math.PI * 2;
     const speed = CRUISE * (0.6 + Math.random() * 0.8);
@@ -155,10 +200,21 @@ function run(Matter, root) {
 
   // Before each step: a tile that has slowed is brought gently back up to
   // its drifting speed, in whatever direction it is going, and one going
-  // faster than anything should is held to the limit.
+  // faster than anything should is held to the limit. Under gravity only
+  // the limit holds.
   const drift = () => {
     for (const { body } of tiles) {
       if (hand.body === body) continue;
+      if (gravity) {
+        const speed = Math.hypot(body.velocity.x, body.velocity.y);
+        if (speed > MAX_SPEED) {
+          Body.setVelocity(body, {
+            x: (body.velocity.x / speed) * MAX_SPEED,
+            y: (body.velocity.y / speed) * MAX_SPEED,
+          });
+        }
+        continue;
+      }
       const { x, y } = body.velocity;
       const speed = Math.hypot(x, y);
       let heading;
@@ -187,8 +243,11 @@ function run(Matter, root) {
     frame = requestAnimationFrame(tick);
     owed = Math.min(owed + (now - last), STEP * MAX_STEPS);
     last = now;
+    const substeps = gravity ? SUBSTEPS : 1;
     while (owed >= STEP) {
-      Engine.update(engine, STEP);
+      for (let i = 0; i < substeps; i++) {
+        Engine.update(engine, STEP / substeps);
+      }
       owed -= STEP;
     }
     for (const { el, home, body } of tiles) {
@@ -214,11 +273,9 @@ function run(Matter, root) {
     Engine.clear(engine);
 
     root.classList.remove("dir-floating");
-    root.classList.add("dir-settling");
-    for (const { el } of tiles) el.style.transform = "";
-    settling = setTimeout(
-      () => root.classList.remove("dir-settling"),
-      SETTLE_MS,
+    settle(
+      root,
+      tiles.map(({ el }) => el),
     );
   };
 }

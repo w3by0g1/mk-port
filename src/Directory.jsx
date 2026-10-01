@@ -10,9 +10,10 @@
 //
 // The icons are plain circles for now, until the real ones are drawn.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { fetchDirectory } from "./directory.js";
 import { float } from "./float.js";
+import { arrange } from "./arrange.js";
 import { openTile, closeTile, PHONE } from "./open.js";
 import Carousel from "./Carousel.jsx";
 import bioIcon from "./assets/icons/bio.svg?raw";
@@ -24,13 +25,13 @@ import floatIcon from "./assets/icons/float.svg?raw";
 // The rows' heights are the layout's own, not any project's: they are the
 // reference's, by place down the page, and whichever projects come in that
 // order fill them. The projects stacking down the left go tall, then as tall
-// as their words, then middling twice; with more of them than that, the
-// same again from the top. The about row is tall as well. Everything else
+// as their words, then middling twice. The about row is tall as well.
+// Everything else
 // is as tall as its words. The numbers are the rows' heights in the
 // reference, in pixels, the first taken down a touch from its 181.
 const PROJECT_ROWS = [165, null, 88, 52];
 const ABOUT_ROW = 248;
-const rowFor = (i) => PROJECT_ROWS[i % PROJECT_ROWS.length];
+const rowFor = (i) => PROJECT_ROWS[i];
 
 // The rows down the page on a wide screen, one to each tile down the first
 // column. A tall row is given a share of the height in proportion to how
@@ -81,20 +82,52 @@ function Blocks({ value }) {
 }
 
 // A link out, with the arrow the reference puts after it. Anything without
-// somewhere to go keeps the arrow but is left as plain text.
+// somewhere to go keeps the arrow but is left as plain text. Its words are
+// kept apart from the arrow, so where the link has to stay on one line they
+// can be cut short while the arrow stays at the end.
 function Out({ href, children }) {
   const inner = (
     <>
-      {children} <span className="dir-arrow">↘</span>
+      <span className="dir-out-words">{children}</span>{" "}
+      <span className="dir-arrow">↘</span>
     </>
   );
   return href ? (
-    <a href={href} target="_blank" rel="noreferrer">
+    <a className="dir-out" href={href} target="_blank" rel="noreferrer">
       {inner}
     </a>
   ) : (
-    inner
+    <span className="dir-out">{inner}</span>
   );
+}
+
+// Keeps a project's words inside its tile, where the tile is held to a
+// height and cuts off what will not fit: the services are let go from the
+// last up until the rest fit. Looked at again whenever the tile changes
+// size, every service shown first, and once the type has come in.
+function useServicesThatFit(tile) {
+  useLayoutEffect(() => {
+    const el = tile.current;
+    let gone = false;
+    const fit = () => {
+      if (gone) return;
+      const services = [...el.querySelectorAll(".dir-service")];
+      for (const service of services) service.style.display = "";
+      if (getComputedStyle(el).overflowY !== "hidden") return;
+      for (let i = services.length - 1; i >= 0; i--) {
+        if (el.scrollHeight <= el.clientHeight + 1) break;
+        services[i].style.display = "none";
+      }
+    };
+    fit();
+    document.fonts?.ready.then(fit);
+    const watcher = new ResizeObserver(fit);
+    watcher.observe(el);
+    return () => {
+      gone = true;
+      watcher.disconnect();
+    };
+  });
 }
 
 // The mark on a select work's tile. Neither of the page's typefaces has a
@@ -142,12 +175,16 @@ function Project({
   height,
   chosen,
   onPress,
+  place,
   className = "",
 }) {
+  const tile = useRef(null);
+  useServicesThatFit(tile);
   return (
     <article
+      ref={tile}
       className={`dir-tile dir-project ${striped ? "dir-striped" : ""} ${selected ? "dir-selected" : ""} ${chosen ? "dir-chosen" : ""} ${className}`}
-      style={tileStyle(turn, height)}
+      style={{ ...tileStyle(turn, height), ...place }}
       data-slug={slug}
       // Pressing a tile opens it; pressing its link follows the link. A
       // striped tile is work that cannot be shown, so it does not open.
@@ -176,7 +213,9 @@ function Project({
         <Kind text={kind} />
         <div className="dir-foot dir-soft dir-fades">
           {(services ?? []).map((service) => (
-            <p key={service}>{service}</p>
+            <p key={service} className="dir-service">
+              {service}
+            </p>
           ))}
         </div>
       </div>
@@ -335,14 +374,19 @@ const SITE_TITLE = document.title;
 // A press that moves further than this, in pixels, was a drag of the tile
 // rather than a press of it.
 const PRESS_SLOP = 5;
+// What the float button can do with the tiles, each in turn.
+const MODES = ["float", "gravity", "arrange"];
 // How far the page is scrolled past an open project's description, in
 // pixels, before it fades.
 const PAST = 8;
 
 function Directory() {
   const [content, setContent] = useState(null);
-  // Whether the tiles have been let go to float about the page.
+  // Whether the tiles have been let go, and how: to float about the page,
+  // to fall to the foot of it, or to be shuffled into a new arrangement.
+  // Each time they go it is the next of them, round and round.
   const [floating, setFloating] = useState(false);
+  const nextMode = useRef(0);
   const root = useRef(null);
   const pressedAt = useRef(null);
   const grabbedAt = useRef(null);
@@ -483,7 +527,8 @@ function Directory() {
 
   useEffect(() => {
     if (!floating) return undefined;
-    return float(root.current);
+    if (floating === "arrange") return arrange(root.current);
+    return float(root.current, { gravity: floating === "gravity" });
   }, [floating]);
 
   // A browser can leave a tile marked as under the pointer when the page
@@ -541,9 +586,14 @@ function Directory() {
       pressedAt.current = null;
       const moved = at && Math.hypot(e.clientX - at[0], e.clientY - at[1]);
       if (moved > PRESS_SLOP) return;
-      setFloating((was) => !was);
+      if (floating) {
+        setFloating(false);
+        return;
+      }
+      setFloating(MODES[nextMode.current]);
+      nextMode.current = (nextMode.current + 1) % MODES.length;
     },
-    "aria-pressed": floating,
+    "aria-pressed": Boolean(floating),
   };
 
   useEffect(() => {
@@ -562,18 +612,24 @@ function Directory() {
     return <div className="directory" />;
   }
 
-  // Every project but the last two stacks down the first column; those two
-  // sit side by side under them. The page keeps its rows whatever the count,
-  // so with too few to fill the stacked rows and the pair, the projects take
-  // the rows in order: the stacked rows first, at their own heights, and
-  // then the pair's first place, in the first column, before its second.
+  // The projects stack down the first column, four of them, and the next
+  // goes under them, so no column has more than five. The rest go beside
+  // them, filling each column after the first from its foot up: the second
+  // first, beside the fifth and then up past the fourth to the top, then
+  // the third, then the fourth, which makes room for twenty. The page keeps
+  // its rows whatever the count, so with too few to fill the stacked rows,
+  // the projects take the rows in order, at their own heights. Only the
+  // first six have a say in how tall the rows are, as in the reference;
+  // any after them fill the rows they are given, whatever is in them.
   const { projects, profile, quote } = content;
-  const rowsFirst =
-    projects.length >= PROJECT_ROWS.length + 2
-      ? projects.length - 2
-      : Math.min(projects.length, PROJECT_ROWS.length);
-  const stacked = projects.slice(0, rowsFirst);
-  const [left, right] = projects.slice(rowsFirst);
+  const stacked = projects.slice(0, PROJECT_ROWS.length);
+  const left = projects[PROJECT_ROWS.length];
+  const beside = projects.slice(PROJECT_ROWS.length + 1);
+  const perColumn = PROJECT_ROWS.length + 1;
+  const placeBeside = (i) => ({
+    "--col": 2 + Math.floor(i / perColumn),
+    "--row": perColumn - (i % perColumn),
+  });
 
   // The rows, counted down the page, and how many each is from the about
   // row, which fades in first; the rest follow it outwards, a row at a time
@@ -590,11 +646,13 @@ function Directory() {
   const below = (at) => ({ at, last: 1 + lines });
   // On a phone, where the page is one column, they come in from the top
   // down instead, each tile after the one above it: the about card, the
-  // projects, the lines along the foot, a column after the other, and the
-  // links last. The history and the float button are not shown there.
+  // projects, the education and experience, the lines along the foot, a
+  // column after the other, and the links last. The float button is not
+  // shown there.
   const mixes = profile.mixes?.length ?? 0;
   const releases = profile.releases?.length ?? 0;
-  const footAt = 1 + projects.length;
+  const pastAt = 1 + projects.length;
+  const footAt = pastAt + 2;
   const down = (turn, at) => ({ ...turn, down: at });
 
   // The open project's link goes at the foot of its description on a phone,
@@ -632,15 +690,17 @@ function Directory() {
             onPress={(tile) => press(left, tile)}
           />
         )}
-        {right && (
+        {beside.map((project, i) => (
           <Project
-            {...right}
-            turn={down(above(aboutRow - 1), 2 + stacked.length)}
-            chosen={opened?._id === right._id}
-            onPress={(tile) => press(right, tile)}
-            className="dir-col-2"
+            key={project._id}
+            {...project}
+            turn={down(above(placeBeside(i)["--row"]), 2 + stacked.length + i)}
+            chosen={opened?._id === project._id}
+            onPress={(tile) => press(project, tile)}
+            place={placeBeside(i)}
+            className={`dir-placed ${i > 0 ? "dir-fitted" : ""}`}
           />
-        )}
+        ))}
 
         <Card
           title={profile.name}
@@ -672,7 +732,7 @@ function Directory() {
         <Card
           title="Education"
           icon={educationIcon}
-          turn={below(1)}
+          turn={down(below(1), pastAt)}
           className="dir-past"
         >
           <History entries={profile.education} />
@@ -680,7 +740,7 @@ function Directory() {
         <Card
           title="Experience"
           icon={experienceIcon}
-          turn={below(1)}
+          turn={down(below(1), pastAt + 1)}
           className="dir-col-2 dir-past"
         >
           <History entries={profile.experience} />

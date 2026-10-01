@@ -135,6 +135,22 @@ html:has(.dir-dark) body {
   grid-column: 2 / -1;
 }
 
+/* A tile the page puts in a column and row of its own choosing, rather than
+   the next free place in its column. */
+.dir-grid > .dir-placed {
+  grid-column: var(--col);
+  grid-row: var(--row);
+}
+
+/* A tile that fills its row without having a say in how tall it is: sized
+   as though it were empty, it leaves the row to the tiles beside it, and is
+   then stretched to the row like the rest. Anything in it that will not
+   fit is cut off at its foot rather than run over the tile below. */
+.dir-grid > .dir-fitted {
+  contain: size;
+  overflow: hidden;
+}
+
 .directory p,
 .directory h2,
 .directory ul {
@@ -422,11 +438,29 @@ html:has(.dir-landing) body {
   cursor: pointer;
 }
 
-/* While the tiles are floating, the float button stays dark, as it is
-   under the pointer, so it shows the tiles are out; and eases back with the
-   rest when they are called home. */
+/* While the tiles are out, floating, falling or shuffled, the float button
+   turns to the cards' ink with its words in white, so it shows the tiles
+   are out; and eases back with the rest when they are called home. Its
+   icon's disc goes white with the words, and its marks, being the tile's
+   colour, still read as holes through to it. Under the pointer it darkens
+   a shade, as the other tiles do. */
 .dir-float[aria-pressed="true"] {
-  --tile: var(--tile-dark);
+  --tile: #434a47;
+  color: #fff;
+}
+
+.dir-float[aria-pressed="true"] .dir-muted {
+  color: rgb(255 255 255 / 0.6);
+}
+
+.dir-float[aria-pressed="true"] .dir-icon path:first-child {
+  fill: #fff;
+}
+
+@media (hover: hover) {
+  .directory:not(.dir-idle) .dir-float[aria-pressed="true"]:hover {
+    --tile: #373d3b;
+  }
 }
 
 /* While the tiles are floating they can be picked up. Each is moved by a
@@ -440,17 +474,21 @@ html:has(.dir-landing) body {
   cursor: grabbing;
 }
 
-/* Called home, each tile eases back from wherever it has drifted to. The
-   darkening keeps its own timing alongside, including the quick one under
-   the pointer. The length is SETTLE_MS in float.js. */
-.dir-settling .dir-tile {
+/* Called home, each tile eases back from wherever it has drifted to, and
+   shuffled, out to its new place: it sets off at once, still going as it
+   was, and slows the whole way, drawing gently to a stop. The darkening
+   keeps its own timing alongside, including the quick one under the
+   pointer. The length is SETTLE_MS in float.js. */
+.dir-settling .dir-tile,
+.dir-arranged .dir-tile {
   transition:
     --tile 1.2s ease-in-out,
-    transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.directory:not(.dir-idle).dir-settling .dir-tile:hover {
-  transition-duration: 0.1s, 0.8s;
+.directory:not(.dir-idle).dir-settling .dir-tile:hover,
+.directory:not(.dir-idle).dir-arranged .dir-tile:hover {
+  transition-duration: 0.1s, 1.4s;
 }
 
 /* A tile striped over on the slant in white, for work that cannot be
@@ -494,6 +532,29 @@ html:has(.dir-landing) body {
   flex-direction: column;
   justify-content: space-between;
   gap: 0.4em;
+  /* As narrow as its column, whatever is in it; a link too long for it is
+     cut short rather than widening it. */
+  min-width: 0;
+}
+
+/* A project's link stays on one line. Where it is too long for the tile
+   its words end in an ellipsis, and the arrow still comes after them. */
+.dir-project .dir-foot .dir-out {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25em;
+  max-width: 100%;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.dir-project .dir-foot .dir-out-words {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dir-project .dir-foot .dir-out .dir-arrow {
+  flex: none;
 }
 
 .dir-name {
@@ -529,6 +590,14 @@ html:has(.dir-landing) body {
 .dir-kind {
   font-weight: 500;
   color: rgb(90 96 93 / 0.7);
+}
+
+/* A project's kind stays on one line, and one too long for the tile ends
+   in an ellipsis, clear of the star where there is one. */
+.dir-project .dir-kind {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .dir-soft {
@@ -778,8 +847,16 @@ html:has(.dir-landing) body {
 
   .dir-grid > .dir-col-2,
   .dir-grid > .dir-col-3,
-  .dir-grid > .dir-links {
+  .dir-grid > .dir-links,
+  .dir-grid > .dir-placed {
     grid-column: 1;
+    grid-row: auto;
+  }
+
+  /* Down a phone each tile is as tall as what is in it. */
+  .dir-grid > .dir-fitted {
+    contain: none;
+    overflow: visible;
   }
 
   .dir-links {
@@ -787,7 +864,7 @@ html:has(.dir-landing) body {
   }
 
   /* The bio comes first, the links last, and the education and experience
-     are left to the bio, which covers them. The float button is left off:
+     go between the projects and the mixes. The float button is left off:
      tiles the page's full width have nowhere to float to. */
   .dir-about {
     order: -1;
@@ -797,9 +874,13 @@ html:has(.dir-landing) body {
     order: 1;
   }
 
-  .dir-past,
   .dir-float {
     display: none;
+  }
+
+  /* A full width tile has room for the history to run further across. */
+  .dir-history {
+    max-width: 75%;
   }
 
   /* What goes as an open project's tile draws down to its bar cannot be
