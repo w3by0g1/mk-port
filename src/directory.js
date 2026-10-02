@@ -29,25 +29,6 @@ const QUERY = `{
   }
 }`;
 
-// On the dev server the projects are made up to this many, by repeating
-// them in order, to see how the page takes a long list. Each copy has an
-// id and an address of its own, so it opens as a project of its own. Zero
-// leaves them as they are.
-const DEV_PROJECTS = 20;
-
-const madeUpTo = (projects, count) =>
-  Array.from({ length: Math.max(projects.length, count) }, (_, i) => {
-    const project = projects[i % projects.length];
-    const copy = Math.floor(i / projects.length);
-    return copy
-      ? {
-          ...project,
-          _id: `${project._id}-${copy}`,
-          slug: `${project.slug}-${copy}`,
-        }
-      : project;
-  });
-
 // One of the profile's quotes, for the float button: picked once, as the
 // page is read in, so it holds while the page is open and changes each time
 // it is opened again.
@@ -55,9 +36,7 @@ const anyOf = (items) =>
   items?.length ? items[Math.floor(Math.random() * items.length)] : null;
 
 export async function fetchDirectory(signal) {
-  const { projects: read, profile } = await query(QUERY, signal);
-  const projects =
-    import.meta.env.DEV && read?.length ? madeUpTo(read, DEV_PROJECTS) : read;
+  const { projects, profile } = await query(QUERY, signal);
   return {
     // A project's media as the showcase wants them: a video if it was
     // uploaded as a file, and a picture otherwise, with its shape, which
