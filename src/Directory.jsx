@@ -309,8 +309,10 @@ function History({ entries }) {
 }
 
 // The panel under an open project's bar, with what the studio says about
-// it, a paragraph to each run of text between blank lines. It sits a gap
-// under the bar and is as wide as it.
+// it: a paragraph to a block, its bold picked out, as the about card has.
+// One written before the studio could bold it is plain text, a paragraph
+// to each run between blank lines. It sits a gap under the bar and is as
+// wide as it.
 // The project's link, if it has one, comes at the foot, as it does on the
 // tile.
 function Description({ text, link, bar, onMeasure }) {
@@ -335,10 +337,12 @@ function Description({ text, link, bar, onMeasure }) {
     window.addEventListener("scroll", look, { passive: true });
     return () => window.removeEventListener("scroll", look);
   }, []);
-  const paragraphs = (text ?? "")
-    .split(/\n\s*\n/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const paragraphs = Array.isArray(text)
+    ? null
+    : (text ?? "")
+        .split(/\n\s*\n/)
+        .map((p) => p.trim())
+        .filter(Boolean);
   return (
     <section
       ref={box}
@@ -349,7 +353,8 @@ function Description({ text, link, bar, onMeasure }) {
         width: bar.width,
       }}
     >
-      {paragraphs.map((p) => (
+      {!paragraphs && <Blocks value={text} />}
+      {paragraphs?.map((p) => (
         <p key={p}>{p}</p>
       ))}
       {link?.label && (
@@ -490,6 +495,8 @@ function Directory() {
   const [bar, setBar] = useState(null);
   // How tall the open project's description is, while it is up.
   const [said, setSaid] = useState(0);
+  // Which of the open project's pieces is on show, for its caption.
+  const [piece, setPiece] = useState(0);
   const openedTile = useRef(null);
   const moving = useRef(false);
   // Whether the page has gone dark behind an open project that asks for it:
@@ -512,6 +519,7 @@ function Directory() {
     moving.current = true;
     if (!fromAddress) window.history.pushState(null, "", `/${project.slug}`);
     setOpened(project);
+    setPiece(0);
     setDark(Boolean(project.darkBackground));
     openedTile.current = await openTile(root.current, tile, setBar, {
       atOnce,
@@ -765,6 +773,7 @@ function Directory() {
   // The open project's link goes at the foot of its description on a phone,
   // where its tile has drawn down to a bar without it; on a wider screen
   // the tile keeps it, and the description goes without.
+  const { title: pieceTitle, caption } = opened?.media?.[piece] ?? {};
   const saysLink = Boolean(
     opened?.link?.label && window.matchMedia(PHONE).matches,
   );
@@ -883,6 +892,32 @@ function Directory() {
             onMeasure={setSaid}
           />
         )}
+        {/* The title and caption of the piece on show, under the
+            description, on a screen wide enough; it comes up again as each
+            piece does. */}
+        {opened &&
+          showing &&
+          (pieceTitle || caption) &&
+          !window.matchMedia(PHONE).matches && (
+            <section
+              key={piece}
+              className="dir-tile dir-description dir-caption"
+              style={{
+                top:
+                  showing.top +
+                  showing.height +
+                  showing.gap +
+                  (said && said + showing.gap),
+                left: showing.left,
+                width: showing.width,
+              }}
+            >
+              {pieceTitle && (
+                <h3 className="dir-caption-title">{pieceTitle}</h3>
+              )}
+              {caption && <p>{caption}</p>}
+            </section>
+          )}
       </div>
       {/* The open project's work, scrolled through a piece at a time,
           under the description on a phone,
@@ -911,6 +946,7 @@ function Directory() {
           }
           gap={bar.gap}
           shown={Boolean(showing)}
+          onShowing={setPiece}
         />
       )}
     </div>

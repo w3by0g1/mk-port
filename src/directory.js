@@ -20,7 +20,7 @@ const QUERY = `{
     link, status, striped,
     selected, darkBackground,
     "media": showcaseMedia[] {
-      _type, "url": asset->url,
+      _type, title, caption, "url": asset->url,
       "shape": asset->metadata.dimensions { width, height }
     }
   },
@@ -45,10 +45,12 @@ export async function fetchDirectory(signal) {
       ...project,
       media: (project.media ?? [])
         .filter((item) => item.url)
-        .map(({ _type, url, shape }) => ({
+        .map(({ _type, url, shape, title, caption }) => ({
           url,
           video: _type === "file",
           shape: shape ?? null,
+          title: title?.trim() || null,
+          caption: caption?.trim() || null,
         })),
     })),
     profile: profile ?? {},

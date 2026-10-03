@@ -12,7 +12,8 @@
 // same, over the bar or the description as well, and so do the arrow keys.
 //
 // Only the piece in view plays; the others are held where they are, so a
-// project of five videos is not playing five at once.
+// project of five videos is not playing five at once. Which piece is in
+// view is told to `onShowing`, by its place in the list, for its caption.
 //
 // It is put on the page, unseen, as soon as the project is pressed, so the
 // first piece is loading while the tile moves up, and it comes up once the
@@ -102,7 +103,7 @@ function Piece({ url, video, shape, first, width }) {
 // also where each is caught, and how far in from the left and right they
 // run, and, if it is not where the first starts, where each is caught.
 // `gap` is the space between them. `shown` is whether it has come up.
-function Carousel({ project, frame, gap, shown }) {
+function Carousel({ project, frame, gap, shown, onShowing }) {
   const media = project.media ?? [];
   const scroller = useRef(null);
 
@@ -167,6 +168,37 @@ function Carousel({ project, frame, gap, shown }) {
     for (const piece of pieces) watching.observe(piece);
     return () => watching.disconnect();
   }, []);
+
+  // Which piece is on show: the one nearest to where pieces are caught, as
+  // the list is scrolled, told to `onShowing`. Only the list itself is
+  // watched, which is what scrolls where the caption is shown.
+  useEffect(() => {
+    const list = scroller.current;
+    if (!list || !onShowing) return undefined;
+    let frame = 0;
+    const pick = () => {
+      frame = 0;
+      const pieces = [...list.querySelectorAll(".dir-carousel-piece")];
+      if (!pieces.length) return;
+      const top = parseFloat(getComputedStyle(list).paddingTop);
+      const off = (piece) => Math.abs(piece.offsetTop - top - list.scrollTop);
+      let at = 0;
+      pieces.forEach((piece, i) => {
+        if (off(piece) < off(pieces[at])) at = i;
+      });
+      onShowing(at);
+    };
+    const scrolled = () => {
+      if (!frame) frame = requestAnimationFrame(pick);
+    };
+    list.addEventListener("scroll", scrolled, { passive: true });
+    pick();
+    return () => {
+      list.removeEventListener("scroll", scrolled);
+      cancelAnimationFrame(frame);
+    };
+    // `onShowing` is a state setter, the same from one draw to the next.
+  }, [onShowing]);
 
   useEffect(() => {
     const list = scroller.current;

@@ -389,6 +389,22 @@ html:has(.dir-landing) body {
   pointer-events: none;
 }
 
+/* A piece's caption keeps its own line breaks, under its title, which is
+   in the weight of the cards' headings. */
+.dir-caption p {
+  white-space: pre-line;
+}
+
+.dir-caption-title {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 700;
+}
+
+.dir-caption-title + p {
+  margin-top: 0.4em;
+}
+
 /* Paragraphs, and the link at the foot, a line's space apart. */
 .dir-description p + p {
   margin-top: 1em;
@@ -991,7 +1007,8 @@ html:has(.dir-landing) body {
   }
 
   .dir-float,
-  .dir-sound {
+  .dir-sound,
+  .dir-caption {
     display: none;
   }
 

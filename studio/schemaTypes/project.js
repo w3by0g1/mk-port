@@ -1,8 +1,27 @@
-import {defineField, defineType} from 'sanity'
+import {defineArrayMember, defineField, defineType} from 'sanity'
 
 // A project, as it is shown on its tile in the directory: who it was for
 // down the left half, what it was and what was done down the right. Its
 // showcase media are the work itself, shown once the project is opened.
+// A title and a few words on a piece of the showcase, shown under the
+// description while it is the one on show, on a screen wide enough to have
+// the room.
+const captioned = [
+  defineField({
+    name: 'title',
+    title: 'Title',
+    type: 'string',
+    description: 'Over the caption, while this piece is on show. Not on phones.',
+  }),
+  defineField({
+    name: 'caption',
+    title: 'Caption',
+    type: 'text',
+    rows: 2,
+    description: 'Shown under the description while this piece is on show. Not on phones.',
+  }),
+]
+
 export default defineType({
   name: 'project',
   title: 'Project',
@@ -47,10 +66,20 @@ export default defineType({
     defineField({
       name: 'description',
       title: 'Description',
-      type: 'text',
-      rows: 5,
+      type: 'array',
       description:
-        'A few words about the work, in a panel under its name once it is opened. Leave a blank line between paragraphs.',
+        'A few words about the work, in a panel under its name once it is opened. A paragraph to a block. Bold picks out the words that matter.',
+      of: [
+        defineArrayMember({
+          type: 'block',
+          styles: [{title: 'Normal', value: 'normal'}],
+          lists: [],
+          marks: {
+            decorators: [{title: 'Bold', value: 'strong'}],
+            annotations: [],
+          },
+        }),
+      ],
     }),
     defineField({
       name: 'services',
@@ -116,11 +145,12 @@ export default defineType({
       title: 'Showcase Media',
       type: 'array',
       of: [
-        {type: 'image', options: {hotspot: true}},
+        {type: 'image', options: {hotspot: true}, fields: captioned},
         {
           type: 'file',
           title: 'Video',
           options: {accept: 'video/*'},
+          fields: captioned,
         },
       ],
       description: 'Images and videos shown in the project carousel',
