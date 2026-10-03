@@ -133,6 +133,30 @@ function useServicesThatFit(tile) {
   });
 }
 
+// An "i", before a piece's caption title, to say it tells you about the
+// piece: the letter in a ring, both in the ink of the words. The letter is
+// the one on an information sign, a round dot over a stem with a flag at
+// its head and a slab at its foot.
+function Info() {
+  return (
+    <svg className="dir-info" viewBox="0 0 16 16" aria-hidden="true">
+      <circle
+        cx="8"
+        cy="8"
+        r="7.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <circle cx="8" cy="5.11" r="1.23" fill="currentColor" />
+      <path
+        fill="currentColor"
+        d="M6.15 6.77H9.31V11.58H9.85V12.19H6.15V11.58H6.67V7.26H6.15Z"
+      />
+    </svg>
+  );
+}
+
 // The mark on a select work's tile. Neither of the page's typefaces has a
 // star, and one borrowed from whatever the system has would look different
 // on every machine, so it is drawn, in the ink of the words about it.
@@ -913,7 +937,10 @@ function Directory() {
               }}
             >
               {pieceTitle && (
-                <h3 className="dir-caption-title">{pieceTitle}</h3>
+                <h3 className="dir-caption-title">
+                  <Info />
+                  {pieceTitle}
+                </h3>
               )}
               {Array.isArray(caption) ? (
                 <Blocks value={caption} />

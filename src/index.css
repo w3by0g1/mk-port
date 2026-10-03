@@ -375,6 +375,15 @@ html:has(.dir-landing) body {
   color: #5a605d;
 }
 
+/* The words in the description and a piece's caption, its title as well,
+   are a size up on the rest of the page, as they are the ones to be read
+   rather than glanced at. They are set larger inside the panel rather than
+   the panel itself, so its padding stays the same as every other tile's,
+   and its words keep in line with the bar's above. */
+.dir-description > * {
+  font-size: 1.2em;
+}
+
 
 /* Scrolled on past, into the work, it fades away, and back as the page
    comes back up to it. */
@@ -397,8 +406,27 @@ html:has(.dir-landing) body {
 
 .dir-caption-title {
   margin: 0;
-  font-size: inherit;
   font-weight: 700;
+}
+
+/* The "i" before a caption's title, a little apart from the words. The
+   two are lined up on the words' baseline, which the drawing, having none
+   of its own, stands on by its foot; so its ring sits on the line as the
+   letters do, in any browser. It is as tall as the title's round letters,
+   an S or an O, 0.728 of the type's size in Neue Haas Grotesk Display. Its
+   ring runs to the very edge of the drawing, so the drawing lets its soft
+   edge show past it. */
+.dir-caption-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+}
+
+.dir-info {
+  flex: none;
+  width: 0.728em;
+  height: 0.728em;
+  overflow: visible;
 }
 
 .dir-caption-title + p {
