@@ -61,8 +61,12 @@ const WALL = 400;
 const STEP = 1000 / 60;
 const MAX_STEPS = 3;
 // How long the tiles take to ease home once they are called back; the same
-// as the transition on `.dir-settling .dir-tile` in the stylesheet.
-const SETTLE_MS = 1400;
+// as the transition on `.dir-settling .dir-tile` in the stylesheet. The
+// transition is kept a while after they should all be home, as one may have
+// set off a frame or two late, and taking it away before then would jump
+// that tile the rest of the way.
+const SETTLE_MS = 900;
+const SETTLE_SPARE = 250;
 
 // The wait for the last homecoming to finish, so letting the tiles go again
 // in the middle of one does not have it end this one early.
@@ -74,10 +78,13 @@ export function homeBy(end) {
   homecoming = end;
 }
 
+// The end of a homecoming: the transition is taken away.
+const settled = (root) => root.classList.remove("dir-settling");
+
 // Before the tiles go anywhere, any homecoming still under way is ended.
 export function unsettle(root) {
   clearTimeout(settling);
-  root.classList.remove("dir-settling");
+  settled(root);
   homecoming?.();
   homecoming = null;
 }
@@ -87,7 +94,7 @@ export function unsettle(root) {
 export function settle(root, els) {
   root.classList.add("dir-settling");
   for (const el of els) el.style.transform = "";
-  settling = setTimeout(() => root.classList.remove("dir-settling"), SETTLE_MS);
+  settling = setTimeout(() => settled(root), SETTLE_MS + SETTLE_SPARE);
 }
 
 // Lets the tiles go, to float or to fall, and gives back a function to call

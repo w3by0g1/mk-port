@@ -474,19 +474,18 @@ html:has(.dir-landing) body {
   cursor: grabbing;
 }
 
-/* Called home, each tile eases back from wherever it has drifted to or
-   been shuffled to: it sets off at once, still going as it was, and slows
-   the whole way, drawing gently to a stop. The darkening keeps its own
-   timing alongside, including the quick one under the pointer. The length
-   is SETTLE_MS in float.js. */
+/* Called home from floating or falling, each tile sets off at once, still
+   going as it was, and slows the whole way, drawing gently to a stop in
+   its place. The darkening keeps its own timing alongside, including the
+   quick one under the pointer. The length is SETTLE_MS in float.js. */
 .dir-settling .dir-tile {
   transition:
     --tile 1.2s ease-in-out,
-    transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .directory:not(.dir-idle).dir-settling .dir-tile:hover {
-  transition-duration: 0.1s, 1.4s;
+  transition-duration: 0.1s, 0.9s;
 }
 
 /* A tile striped over on the slant in white, for work that cannot be
@@ -694,6 +693,19 @@ html:has(.dir-landing) body {
   color: var(--tile);
 }
 
+/* The about card's face: the third eye's pupil eases a little after the
+   pointer, which it follows, and it and the glasses each blink about their
+   own middles (see eye.js). */
+.dir-pupil,
+.dir-glasses {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.dir-pupil {
+  transition: translate 0.12s ease-out;
+}
+
 .dir-icon svg {
   display: block;
   width: 100%;
@@ -721,9 +733,37 @@ html:has(.dir-landing) body {
   margin-top: 1.2em;
 }
 
-/* The links spread down the tile, the last one at its foot. */
+/* The links spread down the tile, three to a column, the last of each at
+   its foot. The tile takes up the page's own columns, so a second column
+   of links stands over the float button's words, as far in from that
+   column's edge as the first is from the edge of the tile. A tile's
+   padding is only kept at the tile's own edges, so the columns after the
+   first are given it themselves. */
+.dir-links {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-template-rows: auto 1fr;
+}
+
+.dir-links > .dir-icon {
+  grid-column: 1;
+}
+
+.dir-links > ul {
+  grid-column: var(--col);
+  grid-row: 2;
+}
+
+.dir-links > ul + ul {
+  margin-left: 0.7em;
+}
+
+/* The empty places making up a short column are each a line tall. */
+.dir-link-empty::before {
+  content: "\00a0";
+}
+
 .dir-links ul {
-  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -732,6 +772,7 @@ html:has(.dir-landing) body {
   padding: 0;
   list-style: none;
 }
+
 
 .dir-history {
   display: flex;
@@ -896,8 +937,29 @@ html:has(.dir-landing) body {
     overflow: visible;
   }
 
+  /* Down a phone, the links tile is one column, every link spread evenly
+     down it, the first under the icon and the last at the foot, with no
+     empty places. */
   .dir-links {
+    display: flex;
+    flex-direction: column;
     min-height: 160px;
+  }
+
+  .dir-links > ul {
+    display: contents;
+  }
+
+  .dir-links li {
+    margin-top: auto;
+  }
+
+  .dir-links > ul:first-of-type > li:first-child {
+    margin-top: 0.7em;
+  }
+
+  .dir-link-empty {
+    display: none;
   }
 
   /* The bio comes first, the links last, and the education and experience

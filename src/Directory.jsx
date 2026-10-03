@@ -15,6 +15,7 @@ import { fetchDirectory } from "./directory.js";
 import { float } from "./float.js";
 import { arrange } from "./arrange.js";
 import { glassTaps, isMuted, setMuted } from "./glass.js";
+import { lookAt } from "./eye.js";
 import { openTile, closeTile, PHONE } from "./open.js";
 import Carousel from "./Carousel.jsx";
 import bioIcon from "./assets/icons/bio.svg?raw";
@@ -259,6 +260,31 @@ function Card({
       {title && <Heading className="dir-heading">{title}</Heading>}
       {children}
     </Tile>
+  );
+}
+
+// The links, a column of three at a time.
+const LINKS_DOWN = 3;
+const inThrees = (links) =>
+  Array.from({ length: Math.ceil(links.length / LINKS_DOWN) }, (_, i) =>
+    links.slice(i * LINKS_DOWN, (i + 1) * LINKS_DOWN),
+  );
+
+// A column of links. One with fewer than three is made up with empty
+// places, so its links stand level with those in the column before it.
+function LinkList({ links, style }) {
+  const empty = LINKS_DOWN - links.length;
+  return (
+    <ul style={style}>
+      {links.map(({ _key, label, url }) => (
+        <li key={_key}>
+          <Out href={url}>{label}</Out>
+        </li>
+      ))}
+      {Array.from({ length: empty }, (_, i) => (
+        <li key={`empty-${i}`} className="dir-link-empty" aria-hidden="true" />
+      ))}
+    </ul>
   );
 }
 
@@ -583,6 +609,12 @@ function Directory() {
     return () => window.removeEventListener("keydown", escape);
   });
 
+  // The eye on the about card looks towards the pointer.
+  useEffect(() => {
+    if (!content) return undefined;
+    return lookAt(root.current.querySelector(".dir-about .dir-pupil"));
+  }, [content]);
+
   // A tap on glass as the pointer comes onto a tile, and as one is pressed.
   useEffect(() => {
     if (!content) return undefined;
@@ -779,19 +811,20 @@ function Directory() {
           </div>
         </Card>
         {/* An icon but no heading: the links say what they are, with their
-            arrows after them, as the others on the page have. */}
+            arrows after them, as the others on the page have. Three to a
+            column, and any more in the next, over the float button's. */}
         <Card
           icon={linksIcon}
           turn={{ at: 0, down: footAt + mixes + releases }}
           className="dir-links"
         >
-          <ul>
-            {(profile.links ?? []).map(({ _key, label, url }) => (
-              <li key={_key}>
-                <Out href={url}>{label}</Out>
-              </li>
-            ))}
-          </ul>
+          {inThrees(profile.links ?? []).map((links, i) => (
+            <LinkList
+              key={links[0]._key}
+              links={links}
+              style={{ "--col": i + 1 }}
+            />
+          ))}
         </Card>
 
         <Card
