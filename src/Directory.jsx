@@ -915,7 +915,11 @@ function Directory() {
               {pieceTitle && (
                 <h3 className="dir-caption-title">{pieceTitle}</h3>
               )}
-              {caption && <p>{caption}</p>}
+              {Array.isArray(caption) ? (
+                <Blocks value={caption} />
+              ) : (
+                caption && <p>{caption}</p>
+              )}
             </section>
           )}
       </div>

@@ -16,9 +16,20 @@ const captioned = [
   defineField({
     name: 'caption',
     title: 'Caption',
-    type: 'text',
-    rows: 2,
-    description: 'Shown under the description while this piece is on show. Not on phones.',
+    type: 'array',
+    description:
+      'Shown under the description while this piece is on show. Not on phones. A paragraph to a block; bold picks out the words that matter.',
+    of: [
+      defineArrayMember({
+        type: 'block',
+        styles: [{title: 'Normal', value: 'normal'}],
+        lists: [],
+        marks: {
+          decorators: [{title: 'Bold', value: 'strong'}],
+          annotations: [],
+        },
+      }),
+    ],
   }),
 ]
 

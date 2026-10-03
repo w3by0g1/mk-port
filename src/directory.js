@@ -29,6 +29,18 @@ const QUERY = `{
   }
 }`;
 
+// A caption, if it says anything: blocks with words in them, or, from
+// before it could be bolded, plain text.
+const worded = (caption) => {
+  if (Array.isArray(caption)) {
+    const said = caption.some((block) =>
+      block.children?.some((span) => span.text?.trim()),
+    );
+    return said ? caption : null;
+  }
+  return caption?.trim() || null;
+};
+
 // One of the profile's quotes, for the float button: picked once, as the
 // page is read in, so it holds while the page is open and changes each time
 // it is opened again.
@@ -50,7 +62,7 @@ export async function fetchDirectory(signal) {
           video: _type === "file",
           shape: shape ?? null,
           title: title?.trim() || null,
-          caption: caption?.trim() || null,
+          caption: worded(caption),
         })),
     })),
     profile: profile ?? {},
