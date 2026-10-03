@@ -16,6 +16,7 @@ import { float } from "./float.js";
 import { arrange } from "./arrange.js";
 import { glassTaps, isMuted, setMuted } from "./glass.js";
 import { lookAt } from "./eye.js";
+import { stripeSteps } from "./stripes.js";
 import { openTile, closeTile, PHONE } from "./open.js";
 import Carousel from "./Carousel.jsx";
 import bioIcon from "./assets/icons/bio.svg?raw";
@@ -194,6 +195,9 @@ function Project({
         !striped && !e.target.closest("a") && onPress?.(e.currentTarget)
       }
     >
+      {/* A striped tile's stripes, on a layer of their own behind the
+          words, so they can be stepped along (see stripes.js). */}
+      {striped && <span className="dir-stripes" aria-hidden="true" />}
       {selected && <Star />}
       <div className="dir-half">
         <div>
@@ -608,6 +612,12 @@ function Directory() {
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
   });
+
+  // A striped tile's stripes step along as it is come onto or pressed.
+  useEffect(() => {
+    if (!content) return undefined;
+    return stripeSteps(root.current);
+  }, [content]);
 
   // The eye on the about card looks towards the pointer.
   useEffect(() => {

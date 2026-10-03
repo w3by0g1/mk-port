@@ -493,8 +493,15 @@ html:has(.dir-landing) body {
    against the words at any window size. A hairline of the tiles' own grey
    closes the white stripes off at the edges, so the tile keeps its outline
    against the pale page; it stays a single pixel at any size, and sits
-   inside the tile, so the tile is no bigger for it. */
+   inside the tile, so the tile is no bigger for it.
+
+   The stripes are drawn on a layer of their own behind the words, wider
+   than the tile to the left, so they can be stepped along to the right
+   (see stripes.js): on the slant, a stripe comes round again every
+   `--stripe` across, its width over the sine of 45 degrees. The layer's
+   reach to the left is REACH stripes there. */
 .dir-striped {
+  --stripe: calc(6 * var(--u) * 1.41421356);
   border: 1px solid var(--tile);
   /* A soft white glow even all round the words, so they lift off the
      stripes behind them. It is laid on twice, a tight one close in under
@@ -503,6 +510,15 @@ html:has(.dir-landing) body {
   text-shadow:
     0 0 0.1em #fff,
     0 0 0.2em #fff;
+  background: none;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.dir-stripes {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 calc(-5 * var(--stripe));
   background: repeating-linear-gradient(
     -45deg,
     var(--tile) 0 calc(3 * var(--u)),
