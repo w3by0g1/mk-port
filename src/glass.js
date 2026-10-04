@@ -74,6 +74,16 @@ const NOTES = [
   523.25, 659.26, 783.99, 987.77, 1046.5, 1318.51, 1567.98, 1975.53, 2093.0,
   2637.02,
 ];
+// The notes a striped tile rings at when it is pressed, being work that
+// cannot be shown, and the cards that are only read, the bio, the links,
+// the education and the experience: C minor seventh, C, E flat, G and B flat, an octave
+// under the others, from C4 up to B flat 5; two of them, one straight after
+// the other, SHUT_GAP seconds apart.
+const SHUT_GAP = 0.05;
+export const MINOR_TILES = ".dir-striped, .dir-about, .dir-links, .dir-past";
+const SHUT_NOTES = [
+  261.63, 311.13, 392.0, 466.16, 523.25, 622.25, 783.99, 932.33,
+];
 // A knock's notes: the same chord, lower, from C4 up to E5.
 const KNOCK_NOTES = [261.63, 329.63, 392.0, 493.88, 523.25, 659.26];
 // Knocks come no closer together than this, in seconds, unless harder than
@@ -167,20 +177,23 @@ if (import.meta.hot && window.__glassSound) {
 }
 
 // Any of the notes but the last one played.
-let lastNote = -1;
-const anyNote = () => {
-  const choices = lastNote < 0 ? NOTES.length : NOTES.length - 1;
+// Of `notes`, the glass's unless told otherwise.
+const lastNotes = new Map();
+const anyNote = (notes = NOTES) => {
+  const lastNote = lastNotes.get(notes) ?? -1;
+  const choices = lastNote < 0 ? notes.length : notes.length - 1;
   let i = Math.floor(Math.random() * choices);
   if (lastNote >= 0 && i >= lastNote) i += 1;
-  lastNote = i;
-  return NOTES[i];
+  lastNotes.set(notes, i);
+  return notes[i];
 };
 const anyKnockNote = () =>
   KNOCK_NOTES[Math.floor(Math.random() * KNOCK_NOTES.length)];
 
 // Strikes the glass at `note`, as hard as `force`, from 0 to 1, or
-// whatever else `voice` says is struck; and gives back when it has rung out.
-function tap(note, force, voice = GLASS) {
+// whatever else `voice` says is struck, `after` so many seconds from now;
+// and gives back when it has rung out.
+function tap(note, force, voice = GLASS, after = 0) {
   if (muted || !context || window.matchMedia(PHONE).matches) return 0;
   // Safari stops a page's sound when something else takes it over, or the
   // machine sleeps, and lets it start again once that is over; so if it has
@@ -189,7 +202,7 @@ function tap(note, force, voice = GLASS) {
     context.resume().catch(() => {});
     return 0;
   }
-  const now = context.currentTime;
+  const now = context.currentTime + after;
   const ring = voice.ringSoft + (voice.ringHard - voice.ringSoft) * force;
   const strike = context.createGain();
   strike.gain.value =
@@ -256,6 +269,84 @@ export function knock(force) {
   knocking.push(tap(anyKnockNote(), force, KNOCK));
 }
 
+// The tick of a bike's freewheel, for an open project's tile as it moves:
+// a click every CHAIN_STEP pixels it goes, so they come thick and fast as
+// it sets off and space out as it slows, as a wheel coasting to a stop
+// does. Each is a snap of noise, high and short, with a blip of a note in
+// it, the two sides of the chain a little apart in pitch, and every one a
+// hair different from the last.
+const CHAIN_STEP = 14;
+const CHAIN_LOUDEST = 0.16;
+const CHAIN_NOTES = [2400, 2050];
+// No two ticks closer than this, in seconds, where it moves fastest.
+const CHAIN_GAP = 0.008;
+
+// How far through a move it is, eased, at a share of its time, and the
+// reverse: when it has got a share of the way. `curve` is a cubic-bezier's
+// four numbers.
+const bezier = (a, b, u) =>
+  3 * a * u * (1 - u) ** 2 + 3 * b * u ** 2 * (1 - u) + u ** 3;
+const whenAt = ([x1, y1, x2, y2], share) => {
+  let low = 0;
+  let high = 1;
+  for (let i = 0; i < 30; i++) {
+    const u = (low + high) / 2;
+    if (bezier(y1, y2, u) < share) low = u;
+    else high = u;
+  }
+  return bezier(x1, x2, (low + high) / 2);
+};
+
+function tick(at, i) {
+  const note = CHAIN_NOTES[i % 2] * (1 + (Math.random() - 0.5) * 0.08);
+  const strike = context.createGain();
+  strike.gain.value = CHAIN_LOUDEST * (0.7 + Math.random() * 0.3);
+  strike.connect(out);
+  const send = context.createGain();
+  send.gain.value = 0.25;
+  strike.connect(send).connect(room);
+  // The snap.
+  const snap = context.createBufferSource();
+  snap.buffer = noise;
+  const band = context.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = note * 1.8;
+  band.Q.value = 4;
+  const snapLoud = context.createGain();
+  snapLoud.gain.setValueAtTime(1, at);
+  snapLoud.gain.exponentialRampToValueAtTime(0.0001, at + 0.006);
+  snap.connect(band).connect(snapLoud).connect(strike);
+  snap.start(at);
+  snap.stop(at + 0.02);
+  // The blip.
+  const blip = context.createOscillator();
+  blip.type = "triangle";
+  blip.frequency.value = note;
+  const blipLoud = context.createGain();
+  blipLoud.gain.setValueAtTime(0.5, at);
+  blipLoud.gain.exponentialRampToValueAtTime(0.0001, at + 0.014);
+  blip.connect(blipLoud).connect(strike);
+  blip.start(at);
+  blip.stop(at + 0.03);
+}
+
+// Ticks along with a move `distance` pixels long, taking `ms`, eased by
+// `curve`, starting now.
+export function chain(distance, ms, curve) {
+  if (muted || !context || window.matchMedia(PHONE).matches) return;
+  if (context.state !== "running") return;
+  const steps = Math.floor(distance / CHAIN_STEP);
+  if (!steps || !ms) return;
+  const start = context.currentTime + 0.01;
+  let last = -Infinity;
+  for (let k = 1; k <= steps; k++) {
+    const at = start + (whenAt(curve, k / steps) * ms) / 1000;
+    if (at - last < CHAIN_GAP) continue;
+    tick(at, k);
+    last = at;
+  }
+}
+
 // Listens on the page for the pointer coming onto tiles and pressing them,
 // and gives back a function to stop.
 export function glassTaps(root) {
@@ -289,19 +380,20 @@ export function glassTaps(root) {
 
   // A press of a tile. The press that wakes the sound is heard too, once
   // it has started.
+  // A striped tile, pressed, rings twice, in a minor key, and lower; and so
+  // do the cards that are only read.
   const strike = (e) => {
     const tile = e.target.closest?.(".dir-tile");
     const woken = wake();
     if (!tile || !root.contains(tile)) return;
-    if (context?.state === "running") {
-      tap(anyNote(), PRESS);
-      return;
-    }
-    const note = anyNote();
-    woken?.then(
-      () => tap(note, PRESS),
-      () => {},
-    );
+    const shut = tile.matches(MINOR_TILES);
+    const notes = shut
+      ? [anyNote(SHUT_NOTES), anyNote(SHUT_NOTES)]
+      : [anyNote()];
+    const ring = () =>
+      notes.forEach((note, i) => tap(note, PRESS, GLASS, i * SHUT_GAP));
+    if (context?.state === "running") ring();
+    else woken?.then(ring, () => {});
   };
   // A mouse or a pen strikes as its button goes down, not as it comes up
   // again, which would be late by however long it was held. A finger

@@ -17,6 +17,7 @@ import { arrange } from "./arrange.js";
 import { glassTaps, isMuted, setMuted } from "./glass.js";
 import { lookAt } from "./eye.js";
 import { stripeSteps } from "./stripes.js";
+import { pressDarkens } from "./press.js";
 import { openTile, closeTile, PHONE } from "./open.js";
 import Carousel from "./Carousel.jsx";
 import bioIcon from "./assets/icons/bio.svg?raw";
@@ -154,6 +155,62 @@ function Info() {
         d="M6.15 6.77H9.31V11.58H9.85V12.19H6.15V11.58H6.67V7.26H6.15Z"
       />
     </svg>
+  );
+}
+
+// The caption block, for the piece on show. It stays as the pieces go by:
+// it grows or shrinks to what the next one says, as the words fade up, and
+// fades away, with what the last one said, where the next says nothing,
+// coming back where one does. Until any piece has said something, it is
+// not there at all.
+function Caption({ piece, title, words, style }) {
+  const says = Boolean(title || words);
+  // What it shows: what the piece on show says, or, where it says nothing,
+  // what the last one to say anything said, as the block fades away.
+  const [kept, setKept] = useState(says ? { piece, title, words } : null);
+  if (says && kept?.piece !== piece) setKept({ piece, title, words });
+  // How tall what it shows is, for the block to grow or shrink to.
+  const sizer = useRef(null);
+  const [tall, setTall] = useState(null);
+  const there = kept !== null;
+  useEffect(() => {
+    const el = sizer.current;
+    if (!el) return undefined;
+    const watcher = new ResizeObserver(() => setTall(el.offsetHeight));
+    watcher.observe(el);
+    return () => watcher.disconnect();
+  }, [there]);
+  if (!kept) return null;
+  return (
+    <section
+      className={`dir-tile dir-description dir-caption${says ? "" : " dir-caption-gone"}`}
+      style={{
+        ...style,
+        ...(tall !== null ? { height: `calc(${tall}px + 1.4em)` } : {}),
+      }}
+    >
+      {/* The "i" stays as the words change round it; only the words
+          fade up. */}
+      <div ref={sizer}>
+        {kept.title && (
+          <h3 className="dir-caption-title">
+            <Info />
+            <span key={kept.piece} className="dir-caption-fade">
+              {kept.title}
+            </span>
+          </h3>
+        )}
+        {kept.words && (
+          <div key={kept.piece} className="dir-caption-fade">
+            {Array.isArray(kept.words) ? (
+              <Blocks value={kept.words} />
+            ) : (
+              <p>{kept.words}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -519,7 +576,7 @@ const PEEK = 40;
 const FULL_GAP = 8;
 // How long the pointer has to be still, in milliseconds, before the words
 // over an open project's work make way for it.
-const STILL_MS = 2500;
+const STILL_MS = 1500;
 // How far the page is scrolled past an open project's description, in
 // pixels, before it fades.
 const PAST = 8;
@@ -547,7 +604,7 @@ function Directory() {
   // How tall the open project's description is, while it is up.
   const [said, setSaid] = useState(0);
   // How wide the description is drawn unseen, to be measured, as a project
-  // opens; and where.
+  // opens.
   const [measuring, setMeasuring] = useState(null);
   const measurer = useRef(null);
   // Which of the open project's pieces is on show, for its caption.
@@ -722,6 +779,13 @@ function Directory() {
     window.addEventListener("keydown", escape);
     return () => window.removeEventListener("keydown", escape);
   });
+
+  // The cards that are only read, and the striped tiles, darken as they
+  // are pressed.
+  useEffect(() => {
+    if (!content) return undefined;
+    return pressDarkens(root.current);
+  }, [content]);
 
   // A striped tile's stripes step along as it is come onto or pressed.
   useEffect(() => {
@@ -1012,29 +1076,16 @@ function Directory() {
           )}
         {/* The title and caption of the piece on show, at the right of
             the window and in the middle of it, top to bottom, on a screen
-            wide enough; it comes up again as each piece does. */}
-        {opened &&
-          showing &&
-          (pieceTitle || caption) &&
-          !window.matchMedia(PHONE).matches && (
-            <section
-              key={piece}
-              className="dir-tile dir-description dir-caption"
-              style={{ right: showing.left, width: showing.width }}
-            >
-              {pieceTitle && (
-                <h3 className="dir-caption-title">
-                  <Info />
-                  {pieceTitle}
-                </h3>
-              )}
-              {Array.isArray(caption) ? (
-                <Blocks value={caption} />
-              ) : (
-                caption && <p>{caption}</p>
-              )}
-            </section>
-          )}
+            wide enough. */}
+        {opened && showing && !window.matchMedia(PHONE).matches && (
+          <Caption
+            key={opened._id}
+            piece={piece}
+            title={pieceTitle}
+            words={caption}
+            style={{ right: showing.left, width: showing.width }}
+          />
+        )}
       </div>
       {/* The open project's work, scrolled through a piece at a time,
           under the description on a phone,

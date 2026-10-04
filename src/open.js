@@ -14,6 +14,8 @@
 // alone. Pressing it and the pointer passing over it follow where it is
 // drawn.
 
+import { chain } from "./glass.js";
+
 // How long the fading, the move up or down, and the move across take. The
 // move up or down eases quick away and slow to settle; the move across
 // eases in and out, so it runs on into the move after it rather than
@@ -29,6 +31,11 @@ const ACROSS = 400;
 const GROW = 500;
 const EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)";
 const ACROSS_EASE = "ease-in-out";
+// The same easings as numbers, for the ticks that go with a move.
+const CURVES = {
+  [EASE]: [0.2, 0.8, 0.2, 1],
+  [ACROSS_EASE]: [0.42, 0, 0.58, 1],
+};
 
 // Where motion has been turned down, all of it happens at once.
 const pace = () =>
@@ -57,6 +64,16 @@ const move = async (
     easing,
     fill: "forwards",
   });
+  // A freewheel's ticks along with it, as far as it goes: across, up or
+  // down, or the way it is cut short or let out.
+  chain(
+    Math.max(
+      Math.hypot(to.x - from.x, to.y - from.y),
+      Math.abs(to.cut - from.cut),
+    ),
+    duration * speed,
+    CURVES[easing],
+  );
   await motion.finished;
   Object.assign(tile.style, drawn(to));
   motion.cancel();
@@ -168,10 +185,9 @@ export async function openTile(
   // How far down the window it comes to rest: the grid's own top margin,
   // or, where the page asks for another, that. A phone's is further down,
   // clear of the point near the top of the window that Safari takes its
-  // own bar's colour from.
-  // On a wider screen, it and what is `below` it, the description, a gap
-  // under it, are set in the middle of the window, top to bottom, though
-  // no higher than that.
+  // own bar's colour from. On a wider screen, it and what is `below` it,
+  // the description, a gap under it, are set in the middle of the window,
+  // top to bottom, though no higher than that margin.
   const gap = parseFloat(grid.rowGap);
   const fromTop =
     parseFloat(getComputedStyle(root).getPropertyValue("--bar-top")) ||

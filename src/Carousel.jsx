@@ -34,6 +34,10 @@ const STEP = 40;
 const GESTURE_GAP = 200;
 // How much of a piece has to be in view for it to count as the one on show.
 const IN_VIEW = 0.6;
+// How often the video on show is looked at to see if it has stuck at its
+// end, in milliseconds, and how near its end, in seconds, counts as there.
+const END_CHECK = 400;
+const END = 0.25;
 // The widths a picture is asked of Sanity at, for the browser to choose
 // the one that fits the room it has.
 const WIDTHS = [640, 960, 1280, 1920, 2560];
@@ -150,6 +154,7 @@ function Carousel({ project, frame, gap, shown, onShowing }) {
     // Whichever piece is mostly in view plays, and the rest wait. This
     // goes on while it is still unseen, so the first is already running
     // when it comes up.
+    const playing = new Set();
     const watching = new IntersectionObserver(
       (entries) => {
         // Counted by how much is in view, not whether any is, so the next
@@ -157,8 +162,13 @@ function Carousel({ project, frame, gap, shown, onShowing }) {
         for (const { target, intersectionRatio } of entries) {
           const inView = intersectionRatio >= IN_VIEW;
           if (target.tagName !== "VIDEO") continue;
-          if (inView) target.play().catch(() => {});
-          else target.pause();
+          if (inView) {
+            playing.add(target);
+            target.play().catch(() => {});
+          } else {
+            playing.delete(target);
+            target.pause();
+          }
         }
       },
       // Measured against the window, which clips the pieces wherever
@@ -167,7 +177,31 @@ function Carousel({ project, frame, gap, shown, onShowing }) {
       { threshold: IN_VIEW },
     );
     for (const piece of pieces) watching.observe(piece);
-    return () => watching.disconnect();
+
+    // A video in view that has come to its end and stopped there, held on
+    // its last frame rather than going round again, as Safari leaves some,
+    // is set going from the top. One only held up partway, waiting for
+    // more of itself to load, is left to carry on.
+    const was = new Map();
+    const roundAgain = setInterval(() => {
+      for (const video of playing) {
+        const at = video.currentTime;
+        const still = video.paused || at === was.get(video);
+        was.set(video, at);
+        const atEnd =
+          video.ended ||
+          (Number.isFinite(video.duration) && at >= video.duration - END);
+        if (atEnd && still) {
+          video.currentTime = 0;
+          video.play().catch(() => {});
+        }
+      }
+    }, END_CHECK);
+
+    return () => {
+      watching.disconnect();
+      clearInterval(roundAgain);
+    };
   }, []);
 
   // Which piece is on show: the one nearest to where pieces are caught, as
