@@ -306,6 +306,30 @@ html:has(.dir-landing) body {
   background-color: #3a3a3a;
 }
 
+/* Over that dark ground, a rise of light, deeper at the top left and
+   paler at the foot on the right, either side of its grey. A shading
+   cannot be faded from one to another as a colour can, so it is laid on a
+   layer of its own, held to the window, behind everything on the page,
+   and that is faded in and out as the ground darkens. */
+.directory::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(160deg, #242424, #707070);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.dir-dark::before {
+  opacity: 1;
+}
+
+.dir-landing::before {
+  transition: none;
+}
+
 /* An open project's work on the directory: the whole window scrolls
    through it a piece at a time, each caught as it arrives, level with the
    bar, and none passed over; the bar and the description stay over it all.
@@ -360,6 +384,25 @@ html:has(.dir-landing) body {
 }
 
 /* A piece fades up once it has something to show. */
+/* On a wider screen each piece has the window from side to side, and
+   from top to foot but for `--top` at each, where it is caught: room for
+   the gap and the end of the piece before it above, and the gap and the
+   start of the piece after it below, peeking in (PEEK and FULL_GAP in
+   Directory.jsx). It is shown whole in it, as large as it goes, in the
+   middle, with the room it does not fill left either side, or above and
+   below. The bar and the description lie over it. The last needs room
+   under it as deep as `--top` to be caught. */
+.dir-carousel-full {
+  padding-bottom: var(--top);
+}
+
+.dir-carousel-full .dir-carousel-piece {
+  height: calc(100vh - 2 * var(--top));
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
 .dir-carousel-piece.dir-ready {
   opacity: 1;
 }
@@ -375,12 +418,12 @@ html:has(.dir-landing) body {
   color: #5a605d;
 }
 
-/* The words in the description and a piece's caption, its title as well,
-   are a size up on the rest of the page, as they are the ones to be read
-   rather than glanced at. They are set larger inside the panel rather than
-   the panel itself, so its padding stays the same as every other tile's,
-   and its words keep in line with the bar's above. */
-.dir-description > * {
+/* The words in a piece's caption, its title as well, are a size up on the
+   rest of the page, the description's among them. They are set larger
+   inside the panel rather than the panel itself, so its padding stays the
+   same as every other tile's, and its words keep in line with the bar's
+   above. */
+.dir-caption > * {
   font-size: 1.2em;
 }
 
@@ -396,6 +439,40 @@ html:has(.dir-landing) body {
 .dir-description.dir-past-by {
   opacity: 0;
   pointer-events: none;
+}
+
+/* Once the pointer has been still a while over an open project's work, its
+   bar, description and caption fade away, and cannot be pressed until they
+   are back, which is as soon as it moves (see STILL_MS in Directory.jsx).
+   On a wider screen only. */
+@media (min-width: 801px) {
+  .dir-shown .dir-chosen,
+  .dir-shown .dir-description {
+    transition:
+      --tile 1.2s ease-in-out,
+      opacity 0.5s ease;
+  }
+
+  .dir-still .dir-chosen,
+  .dir-still .dir-description {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* The description drawn unseen as a project opens, to be measured. */
+.dir-measuring {
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  animation: none;
+}
+
+/* A piece's caption sits at the right of the window, in the middle of it
+   top to bottom, wherever the window's middle is. */
+.dir-caption {
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* A piece's caption keeps its own line breaks, under its title, which is

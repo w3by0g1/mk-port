@@ -77,7 +77,9 @@ const goUp = async (tile, to, speed) => {
 // Every tile on the page but the chosen one, and the parts of the chosen
 // one that go when it draws down: everything below its first line.
 const aside = (root, tile, drawsDown) => [
-  ...[...root.querySelectorAll(".dir-tile")].filter((t) => t !== tile),
+  ...[...root.querySelectorAll(".dir-tile:not(.dir-measuring)")].filter(
+    (t) => t !== tile,
+  ),
   ...(drawsDown ? tile.querySelectorAll(".dir-fades") : []),
 ];
 
@@ -143,7 +145,7 @@ export async function openTile(
   root,
   tile,
   planned = () => {},
-  { atOnce = false } = {},
+  { atOnce = false, below = 0 } = {},
 ) {
   const speed = atOnce ? 0 : pace();
   // A long page on a phone scrolls, as the window rather than as the
@@ -167,9 +169,17 @@ export async function openTile(
   // or, where the page asks for another, that. A phone's is further down,
   // clear of the point near the top of the window that Safari takes its
   // own bar's colour from.
-  const top =
+  // On a wider screen, it and what is `below` it, the description, a gap
+  // under it, are set in the middle of the window, top to bottom, though
+  // no higher than that.
+  const gap = parseFloat(grid.rowGap);
+  const fromTop =
     parseFloat(getComputedStyle(root).getPropertyValue("--bar-top")) ||
     parseFloat(grid.paddingTop);
+  const together = firstLine + (below ? gap + below : 0);
+  const top = drawsDown
+    ? fromTop
+    : Math.max(fromTop, (window.innerHeight - together) / 2);
   const to = {
     x: parseFloat(grid.paddingLeft) - place.left,
     y: top - place.top,
@@ -183,7 +193,7 @@ export async function openTile(
     left: parseFloat(grid.paddingLeft),
     width: place.width,
     height: firstLine,
-    gap: parseFloat(grid.rowGap),
+    gap,
   };
   planned(bar);
 

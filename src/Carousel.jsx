@@ -101,7 +101,8 @@ function Piece({ url, video, shape, first, width }) {
 
 // `frame` is where the pieces go: how far down the first starts, which is
 // also where each is caught, and how far in from the left and right they
-// run, and, if it is not where the first starts, where each is caught.
+// run, and, if it is not where the first starts, where each is caught; or
+// that each fills the whole window, `full`.
 // `gap` is the space between them. `shown` is whether it has come up.
 function Carousel({ project, frame, gap, shown, onShowing }) {
   const media = project.media ?? [];
@@ -254,7 +255,7 @@ function Carousel({ project, frame, gap, shown, onShowing }) {
   return (
     <div
       ref={scroller}
-      className={`dir-carousel${shown ? " dir-carousel-shown" : ""}`}
+      className={`dir-carousel${shown ? " dir-carousel-shown" : ""}${frame.full ? " dir-carousel-full" : ""}`}
       style={{
         "--top": `${frame.top}px`,
         "--catch": `${frame.catchAt ?? frame.top}px`,

@@ -16,11 +16,11 @@ const SHOWN = import.meta.env.DEV ? "" : " && hidden != true";
 const QUERY = `{
   "projects": *[_type == "project"${SHOWN}]
     | order(defined(date) desc, date desc, order asc) {
-    _id, name, "slug": slug.current, client, kind, description, services,
+    _id, name, "slug": slug.current, date, kind, description, services,
     link, status, striped,
     selected, darkBackground,
     "media": showcaseMedia[] {
-      _type, title, caption, "url": asset->url,
+      _type, title, caption, darkBackground, "url": asset->url,
       "shape": asset->metadata.dimensions { width, height }
     }
   },
@@ -57,10 +57,13 @@ export async function fetchDirectory(signal) {
       ...project,
       media: (project.media ?? [])
         .filter((item) => item.url)
-        .map(({ _type, url, shape, title, caption }) => ({
+        .map(({ _type, url, shape, title, caption, darkBackground }) => ({
           url,
           video: _type === "file",
           shape: shape ?? null,
+          // Dark behind it if it says so; one from before each piece could
+          // say, as dark as its project was.
+          dark: darkBackground ?? Boolean(project.darkBackground),
           title: title?.trim() || null,
           caption: worded(caption),
         })),

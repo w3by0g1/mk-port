@@ -186,12 +186,21 @@ function Kind({ text }) {
   );
 }
 
-// A project: who it was for down the left half, what it was and what was
-// done down the right, each with its last lines held to the foot.
+// When a project was, as its tile gives it: the month and year, "Mar
+// 2026". Read from the date as written, not as a time, so it is the same
+// month wherever in the world it is read.
+const MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+const monthOf = (date) => {
+  const [year, month] = date.split("-").map(Number);
+  return MONTHS[month - 1] ? `${MONTHS[month - 1]} ${year}` : null;
+};
+
+// A project: its name and when it was down the left half, what it was and
+// what was done down the right, each with its last lines held to the foot.
 function Project({
   name,
   slug,
-  client,
+  date,
   kind,
   services,
   link,
@@ -233,7 +242,7 @@ function Project({
             </span>
             {name}
           </h2>
-          {client && <p className="dir-soft dir-fades">{client}</p>}
+          {date && <p className="dir-soft dir-fades">{monthOf(date)}</p>}
         </div>
         <p className="dir-foot dir-fades">
           {link?.label ? <Out href={link.url}>{link.label}</Out> : status}
@@ -361,12 +370,6 @@ function Description({ text, link, bar, onMeasure }) {
     window.addEventListener("scroll", look, { passive: true });
     return () => window.removeEventListener("scroll", look);
   }, []);
-  const paragraphs = Array.isArray(text)
-    ? null
-    : (text ?? "")
-        .split(/\n\s*\n/)
-        .map((p) => p.trim())
-        .filter(Boolean);
   return (
     <section
       ref={box}
@@ -377,6 +380,21 @@ function Description({ text, link, bar, onMeasure }) {
         width: bar.width,
       }}
     >
+      <DescriptionWords text={text} link={link} />
+    </section>
+  );
+}
+
+// What the description says, and the project's link at its foot.
+function DescriptionWords({ text, link }) {
+  const paragraphs = Array.isArray(text)
+    ? null
+    : (text ?? "")
+        .split(/\n\s*\n/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+  return (
+    <>
       {!paragraphs && <Blocks value={text} />}
       {paragraphs?.map((p) => (
         <p key={p}>{p}</p>
@@ -386,7 +404,7 @@ function Description({ text, link, bar, onMeasure }) {
           <Out href={link.url}>{link.label}</Out>
         </p>
       )}
-    </section>
+    </>
   );
 }
 
@@ -493,6 +511,15 @@ const SITE_TITLE = document.title;
 const PRESS_SLOP = 5;
 // What the float button can do with the tiles, each in turn.
 const MODES = ["float", "gravity", "arrange"];
+// How much of the pieces either side of the one on show peeks in above and
+// below it, in pixels, on a wider screen, and the gap between them; the
+// one on show is caught that far down, and is as tall as the window less
+// that much at its top and foot (see `.dir-carousel-full`).
+const PEEK = 40;
+const FULL_GAP = 8;
+// How long the pointer has to be still, in milliseconds, before the words
+// over an open project's work make way for it.
+const STILL_MS = 2500;
 // How far the page is scrolled past an open project's description, in
 // pixels, before it fades.
 const PAST = 8;
@@ -519,12 +546,18 @@ function Directory() {
   const [bar, setBar] = useState(null);
   // How tall the open project's description is, while it is up.
   const [said, setSaid] = useState(0);
+  // How wide the description is drawn unseen, to be measured, as a project
+  // opens; and where.
+  const [measuring, setMeasuring] = useState(null);
+  const measurer = useRef(null);
   // Which of the open project's pieces is on show, for its caption.
   const [piece, setPiece] = useState(0);
   const openedTile = useRef(null);
   const moving = useRef(false);
-  // Whether the page has gone dark behind an open project that asks for it:
-  // from the moment it is pressed until the moment it is closed.
+  // Whether the page has gone dark behind an open project whose first piece
+  // asks for it: from the moment it is pressed until the moment it is
+  // closed. While the work is up, it is the piece on show that says, and
+  // the page eases from dark to light and back as the pieces go by.
   const [dark, setDark] = useState(false);
   // Whether the page was arrived at by a project's address, which it opens
   // at once, the page's own coming in left out; and, until it is open,
@@ -542,11 +575,21 @@ function Directory() {
     if (moving.current || floating) return;
     moving.current = true;
     if (!fromAddress) window.history.pushState(null, "", `/${project.slug}`);
+    // On a wider screen the bar and the description under it are set in
+    // the middle of the window, top to bottom, so the description is first
+    // drawn unseen, as wide as the tile, to know how tall it will be.
+    setMeasuring(tile.offsetWidth);
     setOpened(project);
     setPiece(0);
-    setDark(Boolean(project.darkBackground));
+    setDark(Boolean(project.media?.[0]?.dark));
+    await new Promise((done) =>
+      requestAnimationFrame(() => requestAnimationFrame(done)),
+    );
+    const below = measurer.current?.offsetHeight ?? 0;
+    setMeasuring(null);
     openedTile.current = await openTile(root.current, tile, setBar, {
       atOnce,
+      below,
     });
     setShowing(openedTile.current.bar);
     setLanding(false);
@@ -604,6 +647,41 @@ function Directory() {
       window.removeEventListener("touchstart", snap);
       window.removeEventListener("wheel", snap);
       page.classList.remove("dir-snapping");
+    };
+  }, [showing]);
+
+  // While a project's work is up, its bar, description and caption make way
+  // for it once the pointer has been still a while, and come back as soon
+  // as it moves, or the page is scrolled, pressed or typed at. While the
+  // pointer is on one of them, they stay. On a wider screen only, with a
+  // pointer to be still.
+  useEffect(() => {
+    const desktop =
+      !window.matchMedia(PHONE).matches &&
+      window.matchMedia("(hover: hover)").matches;
+    if (!showing || !desktop) return undefined;
+    const page = root.current;
+    let wait = 0;
+    let onThem = false;
+    const stir = (e) => {
+      if (e?.target?.closest) {
+        onThem = Boolean(e.target.closest(".dir-chosen, .dir-description"));
+      }
+      page.classList.remove("dir-still");
+      clearTimeout(wait);
+      if (!onThem) {
+        wait = setTimeout(() => page.classList.add("dir-still"), STILL_MS);
+      }
+    };
+    const signs = ["pointermove", "pointerdown", "wheel", "keydown"];
+    for (const sign of signs) {
+      window.addEventListener(sign, stir, { passive: true });
+    }
+    stir();
+    return () => {
+      clearTimeout(wait);
+      for (const sign of signs) window.removeEventListener(sign, stir);
+      page.classList.remove("dir-still");
     };
   }, [showing]);
 
@@ -798,6 +876,8 @@ function Directory() {
   // where its tile has drawn down to a bar without it; on a wider screen
   // the tile keeps it, and the description goes without.
   const { title: pieceTitle, caption } = opened?.media?.[piece] ?? {};
+  const darkNow =
+    showing && opened ? Boolean(opened.media?.[piece]?.dark) : dark;
   const saysLink = Boolean(
     opened?.link?.label && window.matchMedia(PHONE).matches,
   );
@@ -805,7 +885,7 @@ function Directory() {
   return (
     <div
       ref={root}
-      className={`directory ${opened ? "dir-open" : ""} ${showing ? "dir-shown" : ""} ${dark ? "dir-dark" : ""} ${landed ? "dir-landed" : ""} ${landing ? "dir-landing" : ""}`}
+      className={`directory ${opened ? "dir-open" : ""} ${showing ? "dir-shown" : ""} ${darkNow ? "dir-dark" : ""} ${landed ? "dir-landed" : ""} ${landing ? "dir-landing" : ""}`}
     >
       <div
         className="dir-grid"
@@ -916,9 +996,23 @@ function Directory() {
             onMeasure={setSaid}
           />
         )}
-        {/* The title and caption of the piece on show, under the
-            description, on a screen wide enough; it comes up again as each
-            piece does. */}
+        {/* The description, unseen, as wide as the tile, measured as the
+            project opens; on a wider screen only, where it is centred. */}
+        {measuring &&
+          opened?.description &&
+          !window.matchMedia(PHONE).matches && (
+            <section
+              ref={measurer}
+              className="dir-tile dir-description dir-measuring"
+              style={{ width: measuring }}
+              aria-hidden="true"
+            >
+              <DescriptionWords text={opened.description} />
+            </section>
+          )}
+        {/* The title and caption of the piece on show, at the right of
+            the window and in the middle of it, top to bottom, on a screen
+            wide enough; it comes up again as each piece does. */}
         {opened &&
           showing &&
           (pieceTitle || caption) &&
@@ -926,15 +1020,7 @@ function Directory() {
             <section
               key={piece}
               className="dir-tile dir-description dir-caption"
-              style={{
-                top:
-                  showing.top +
-                  showing.height +
-                  showing.gap +
-                  (said && said + showing.gap),
-                left: showing.left,
-                width: showing.width,
-              }}
+              style={{ right: showing.left, width: showing.width }}
             >
               {pieceTitle && (
                 <h3 className="dir-caption-title">
@@ -970,12 +1056,16 @@ function Directory() {
                   catchAt: bar.top + bar.height + bar.gap,
                 }
               : {
-                  top: bar.top,
-                  left: bar.left + bar.width + bar.gap,
-                  right: bar.left,
+                  // The whole window, each piece filling it but for the
+                  // ends of the ones before and after it, under the bar and
+                  // description, which lie over it.
+                  top: PEEK + FULL_GAP,
+                  left: 0,
+                  right: 0,
+                  full: true,
                 }
           }
-          gap={bar.gap}
+          gap={window.matchMedia(PHONE).matches ? bar.gap : FULL_GAP}
           shown={Boolean(showing)}
           onShowing={setPiece}
         />

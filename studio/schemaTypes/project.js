@@ -3,10 +3,17 @@ import {defineArrayMember, defineField, defineType} from 'sanity'
 // A project, as it is shown on its tile in the directory: who it was for
 // down the left half, what it was and what was done down the right. Its
 // showcase media are the work itself, shown once the project is opened.
-// A title and a few words on a piece of the showcase, shown under the
-// description while it is the one on show, on a screen wide enough to have
-// the room.
+// Whether the page goes dark behind a piece of the showcase while it is on
+// show; and a title and a few words on it, shown with it, on a screen wide
+// enough to have the room.
 const captioned = [
+  defineField({
+    name: 'darkBackground',
+    title: 'Dark Background',
+    type: 'boolean',
+    description: 'While this piece is on show, the page behind it goes dark, for work that looks best on dark.',
+    initialValue: false,
+  }),
   defineField({
     name: 'title',
     title: 'Title',
@@ -66,7 +73,7 @@ export default defineType({
       name: 'client',
       title: 'Client',
       type: 'string',
-      description: 'Who it was for, under the name, e.g. "for Silv-o". Optional.',
+      description: 'Who it was for, e.g. "for Silv-o". Optional. Not shown on the site at the moment: the date is, in its place.',
     }),
     defineField({
       name: 'kind',
@@ -127,13 +134,6 @@ export default defineType({
       title: 'Select Works',
       type: 'boolean',
       description: 'One of the select works: its tile gets a star in the top right corner.',
-      initialValue: false,
-    }),
-    defineField({
-      name: 'darkBackground',
-      title: 'Dark Background',
-      type: 'boolean',
-      description: 'When it is opened, the page behind it goes dark, for work that looks best on dark.',
       initialValue: false,
     }),
     defineField({
